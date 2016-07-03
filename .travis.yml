@@ -1,0 +1,9 @@
+# Get lisp binary to use
+install:
+ - curl http://ccl.clozure.com/ftp/pub/release/1.11/ccl-1.11-linuxx86.tar.gz | tar xzf -
+
+# Build and run layout tests
+script:
+ - ./bootstrap
+ - ./configure --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64
+ - make && make check
