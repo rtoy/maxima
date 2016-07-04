@@ -1,7 +1,7 @@
 Notes on Lisp implementations for Maxima:
 
-Clisp, CMUCL, Scieneer Common Lisp (SCL), GCL (ANSI-enabled only),
-ECL, ABCL and SBCL can compile and execute Maxima.
+Clisp, CMUCL, Scieneer Common Lisp (SCL), GCL (ANSI-enabled only)
+and SBCL can compile and execute Maxima.
 Allegro Common Lisp and OpenMCL might also work, but have not
 been fully tested.
 
@@ -48,18 +48,10 @@ Clisp is compiled to bytecodes, so Maxima running on Clisp is
 substantially slower than on Lisps compiled to machine instructions. 
 On the other hand, Clisp contains code from CLN <http://www.ginac.de/CLN/>,
 a library for efficient computations with all kinds of numbers in 
-arbitrary precision. Another advantage of clisp is that byte code 
-resulting in compiling a program on one computer might work on a
-computer running a different Clisp version. Also Clisp uses an
-extremely efficient memory handling which means it might not run
-out of memory where ECL, SBCL and GCL do.
-
-CLISP version 2.49 has a bug that causes it to output garbled data
-if the front-end is fast enough to acknowledge a data packet while
-the next data packet is still being prepared.
+arbitrary precision.
 
 There are Clisp implementations for many platforms including 
-MS Windows and Unix-like systems. 
+MS Windows and Unix-like systems.
 
 --------------------------------------------------------------------
 CMUCL <http://www.cons.org/cmucl/>
@@ -67,7 +59,7 @@ CMUCL <http://www.cons.org/cmucl/>
 	CMUCL is a fast option for Maxima on platforms where it is
 available. The rmaxima front-end provides advanced line-editing
 facilities for Maxima when compiled with CMUCL. rlwrap is available
-from <https://github.com/hanslub42/rlwrap> .
+from <http://utopia.knoware.nl/~hlub/uck/rlwrap/> .
 
 CMUCL versions: 18e and 19a and later are known to work.
 
@@ -91,8 +83,7 @@ GCL <http://savannah.gnu.org/projects/gcl/>
 
 	GCL versions starting with 2.4.3 can be built with readline
 support, so Maxima has advanced command-line editing facilities
-when built with it. GCL produces a fast Maxima exectuable that
-profit from GCL's fast bignum algorithms.
+when built with it. GCL produces a fast Maxima exectuable.
 
 Only the ANSI-enabled version of GCL works with Maxima, i.e.,
 when GCL is built, it must be configured with the --enable-ansi flag,
@@ -110,10 +101,8 @@ including MS Windows and Unix-like systems.
 --------------------------------------------------------------------
 SBCL <http://www.sbcl.org>
 
-	SBCL is a fork of CMUCL which differs in some minor details,
+    SBCL is a fork of CMUCL which differs in some minor details,
 but most notably, it is simpler to rebuild SBCL than CMUCL.
-For many tasks a maxima compiled with SBCL is considerably faster than
-GCL. For other tasks GCL is faster than SBCL.
 
 rmaxima is recommended for use with SBCL. See CMUCL above.
 
@@ -127,7 +116,7 @@ implementations. User feedback would be welcome.
 --------------------------------------------------------------------
 CCL <http://ccl.clozure.com/>
 
-	CCL, formerly known as OpenMCL, is known to work with maxima on
+    CCL, formerly known as OpenMCL, is known to work with maxima on
 all platforms where ccl runs including Linux, Mac OSX, and Windows.
 There are appear to be some bugs in the 32-bit version of ccl,  but
 the 64-bit version passes all tests.
@@ -135,23 +124,7 @@ the 64-bit version passes all tests.
 --------------------------------------------------------------------
 ECL <https://common-lisp.net/project/ecl/>
     
-	ECL is known to work with maxima and passes the testsuite.  ECL
-runs on many platforms and OSes and is the lisp compiler used for
-maxima on android. It is faster than CLISP, but seems to tend more
-towards fragmenting the available memory. ECL tends to be slower 
-than GCL or SBCL but faster than CLISP.
-
-ECL must be configured to use the C compiler, building Maxima with the
-ECL bytecode compiler is (currently) not possible.  So do *not* use the
-option "--with-cmp=no" when building ECL.
-
---------------------------------------------------------------------
-Armed Bear Common Lisp (ABCL) <https://common-lisp.net/project/armedbear/>
-
-ABCL's main feature is that is tightly integrated into java.
-That also means that it is an interpreter running in a virtual machine
-which makes it even slower than clisp. Also java doesn't automatically
-convert tail-recursive function calls to loops which means that in a
-few functions might run out of stack space faster than other lisps.
+    ECL is known to work with maxima and passes the testsuite.  ECL
+runs on many platforms and OSes.
 
 
