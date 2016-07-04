@@ -1,15 +1,19 @@
 addons:
   apt:
     packages:
+      - texinfo
       - libc6:i386
       - libstdc++6:i386
 
 # Get lisp binary to use
 install:
- - curl http://ccl.clozure.com/ftp/pub/release/1.11/ccl-1.11-linuxx86.tar.gz | tar xzf -
+ - mkdir impl
+ - curl http://ccl.clozure.com/ftp/pub/release/1.11/ccl-1.11-linuxx86.tar.gz | (cd impl; tar xzf -)
+ - curl https://common-lisp.net/project/cmucl/downloads/snapshots/2016/06/cmucl-2016-06-x86-linux.tar.bz2 | (cd impl; tar xjf -)
 
 # Build and run layout tests
 script:
+ - ./impl/bin/lisp -eval '(progn (print (lisp-implementation-version)) (quit))'
  - ./bootstrap
- - ./configure --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64
+ - ./configure --enable-ccl64 --with-ccl64=$PWD/impl/ccl/lx86cl64 --enable-cmucl --enable-cmucl-exec --with-cmucl=$PWD/impl/bin/lisp
  - make && make check
