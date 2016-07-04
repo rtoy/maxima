@@ -69,8 +69,8 @@ bd:
 LOADDEFSYSTEM = (load "$(top_srcdir)/lisp-utils/defsystem.lisp")
 LOADMAKEDEPENDS = (load "$(top_srcdir)/lisp-utils/make-depends.lisp")
 DS_OOS = funcall (intern (symbol-name :operate-on-system) :mk) "maxima"
-DEFSYSTEMCOMPILE = ($(DS_OOS) :compile :verbose t)
-DEFSYSTEMLOAD = ($(DS_OOS) :load :verbose t)
+DEFSYSTEMCOMPILE = ($(DS_OOS) :compile :verbose nil)
+DEFSYSTEMLOAD = ($(DS_OOS) :load :verbose nil)
 DEFSYSTEMTESTLOAD = ($(DS_OOS) :load :verbose t :test t)
 
 ## A function that takes: $(1) = the target name or names (either a
@@ -146,7 +146,8 @@ endif
 # compile the files, we will get appropriate translations.  (Otherwise
 # we have to put (intl:textdomain "maxima") in each Lisp file.
 INITINTL = (when (find-package "INTL") (set (find-symbol "*DEFAULT-DOMAIN*" "INTL") "maxima"))
-CMU_COMPILE = echo '(progn $(INITINTL) $(LOADDEFSYSTEM) $(DEFSYSTEMCOMPILE))' | $(EXECUTECMUCL)
+CMU_QUIET = (setf *compile-verbose* nil *compile-print* nil *compile-progress* nil)
+CMU_COMPILE = echo '(progn $(CMU_QUIET) $(INITINTL) $(LOADDEFSYSTEM) $(DEFSYSTEMCOMPILE))' | $(EXECUTECMUCL)
 CMU_WRITE = echo '(progn $(LOADDEFSYSTEM) $(DEFSYSTEMLOAD) (ext:save-lisp "$(CMU_MAXIMA)" $(cmuflag)))' | $(EXECUTECMUCL)
 CMU_BUILD = ($(CMU_COMPILE)) && ($(CMU_WRITE))
 EXECUTECMUCL = $(CMUCL_NAME) -noinit -batch
@@ -386,8 +387,9 @@ EXECUTECCL64 = $(CCL64_NAME) -e
 BUILT_FILES += $(CCL64_MAXIMA)
 CLEAN_TARGETS += clean-ccl64
 
+CCL64_QUIET = (setf *compile-verbose* nil *compile-print* nil *compile-progress* nil)
 COMPILE_CCL64 = $(EXECUTECCL64) \
- '(progn (require :defsystem)  $(DEFSYSTEMCOMPILE) (ccl::quit))'
+ '(progn $(CCL64_QUIET) (require :defsystem)  $(DEFSYSTEMCOMPILE) (ccl::quit))'
 WRITE_CCL64 = $(EXECUTECCL64) \
  '(progn (require :defsystem) $(DEFSYSTEMLOAD) (ccl:save-application "$@") (ccl::quit))'
 BUILD_CCL64 = $(COMPILE_CCL64) && $(WRITE_CCL64)
