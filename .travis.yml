@@ -1,3 +1,9 @@
+addons:
+  apt:
+    packages:
+      - libc6:i386
+      - libstdc++6:i386
+
 # Get lisp binary to use
 install:
  - curl http://ccl.clozure.com/ftp/pub/release/1.11/ccl-1.11-linuxx86.tar.gz | tar xzf -
