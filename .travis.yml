@@ -16,4 +16,4 @@ script:
  - ./impl/bin/lisp -eval '(progn (print (lisp-implementation-version)) (quit))'
  - ./bootstrap
  - ./configure --enable-ccl64 --with-ccl64=$PWD/impl/ccl/lx86cl64 --enable-cmucl --enable-cmucl-exec --with-cmucl=$PWD/impl/bin/lisp
- - make && make check
+ - (cd src; make) && make check
