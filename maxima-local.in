@@ -27,5 +27,6 @@ if [ ! -d "$top_srcdir/bin" ]; then
     ln -sf $top_srcdir/interfaces $top_srcdir/bin/interfaces
 fi
 
+set -x
 POSIX_SHELL=@POSIX_SHELL@
 exec $POSIX_SHELL "$top_srcdir/src/maxima" "$@"

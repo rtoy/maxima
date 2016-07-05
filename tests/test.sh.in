@@ -11,7 +11,7 @@ LISP="!LISPNAME!"
 
 # Die if a command fails
 set -e
-
+set -x
 # This command doesn't exit with a helpful status if the lisp survives
 # but the test fails so we must check by hand that nothing untoward
 # happened
