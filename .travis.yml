@@ -16,7 +16,7 @@ script:
  - ./impl/bin/lisp -eval '(progn (print (lisp-implementation-version)) (quit))'
  - ./bootstrap
  - ./configure --enable-ccl64 --with-ccl64=$PWD/impl/ccl/lx86cl64
- - ./configure --enable-ccl64 --with-ccl64=$PWD/impl/ccl/lx86cl64 --enable-cmucl --enable-cmucl-exec --with-cmucl=$PWD/impl/bin/lisp
+ - ./configure --enable-ccl64 --with-ccl64=$PWD/impl/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/impl/bin/lisp
  - make info
  - (cd src; make)
  - ./maxima-local --lisp=cmucl --batch-string="run_testsuite(tests=rtest15);"
