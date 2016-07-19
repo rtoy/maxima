@@ -417,19 +417,6 @@ todd_coxeter (symet (5));
 (put ("*", 'bar, 'foo), kill (all), string (a*b));
 "a*b";
 
-/* SF bug #3387: kill(all) looses mtime's "nary" property
- * (tickled by the preceding test)
- */
-
-xreduce ("*", []);
-1;
-
-(put ("+", 'baz, 'quux), kill (all));
-done;
-
-xreduce ("+", []);
-0;
-
 /* reported to mailing list 2015-01-05: "order of operands is changed due to source information" */
 
 block([simp:false], ?cons(?list('?mplus),?cdr([1,5,3])), string(%%));
@@ -617,9 +604,7 @@ true;
   [1-sqrt(2), (1-sqrt(2))^x, log(2)],
   [1-sqrt(2), (1-sqrt(2))^x, log(log(1-sqrt(2)))],
   [1-sqrt(2), (1-sqrt(2))^x, log(log(2))]],
-  map (lambda ([l], apply (exactly_1, map (lambda ([triple], apply (in_order, triple)),  
-					   (listify (permutations (l)))))),
-       %%));
+ map (lambda ([l], apply (exactly_1, listify (permutations (l)))), %%));
 [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 
 /* totalorderp from mailing list 2016-07-18 "Testing for total order (for orderlessp testing)" tnx Stavros */
@@ -651,11 +636,4 @@ true;
 kill (K);
 done;
 
-/* ensure that GREAT returns only T or NIL, not an integer, when its arguments are strings. */
-
-?great ("foo", "bar");
-true;
-
-?great ("bar", "foo");
-false;
 
