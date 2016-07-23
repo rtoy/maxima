@@ -92,39 +92,34 @@ sin(y)*(10.0+6*cos(x)),
 (defvar $gnuplot_command "gnuplot")
 
 (defun start-gnuplot-process (path)
-  ;; TODO: Forward gnuplot's stderr stream to maxima's stderr output
   #+clisp (setq *gnuplot-stream* (ext:make-pipe-output-stream path))
-  ;; TODO: Forward gnuplot's stderr stream to maxima's stderr output
   #+lispworks (setq *gnuplot-stream* (system:open-pipe path))
   #+cmu (setq *gnuplot-stream*
               (ext:process-input (ext:run-program path nil :input :stream
-                                                  :output *error-output* :wait nil)))
+                                                  :output nil :wait nil)))
   #+scl (setq *gnuplot-stream*
               (ext:process-input (ext:run-program path nil :input :stream
-                                                  :output *error-output* :wait nil)))
+                                                  :output nil :wait nil)))
   #+sbcl (setq *gnuplot-stream*
                (sb-ext:process-input (sb-ext:run-program path nil
                                                          :input :stream
-                                                         :output *error-output* :wait nil
+                                                         :output nil :wait nil
                                                          :search t)))
   #+gcl (setq *gnuplot-stream*
               (open (concatenate 'string "| " path) :direction :output))
   #+ecl (progn
-          (setq *gnuplot-stream* (ext:run-program path nil :input :stream :output *error-output* :error :output :wait nil)))
+          (setq *gnuplot-stream* (ext:run-program path nil :input :stream :output t :error :output :wait nil)))
   #+ccl (setf *gnuplot-stream*
               (ccl:external-process-input-stream
                (ccl:run-program path nil
-                                :wait nil :output *error-output*
+                                :wait nil :output nil
                                 :input :stream)))
   #+allegro (setf *gnuplot-stream* (excl:run-shell-command
-                    path :input :stream :output *error-output* :wait nil))
+                    path :input :stream :output nil :wait nil))
   #+abcl (setq *gnuplot-stream* (system::process-input (system::run-program path nil :wait nil)))
   #-(or clisp cmu sbcl gcl scl lispworks ecl ccl allegro abcl)
   (merror (intl:gettext "plotting: I don't know how to tell this Lisp to run Gnuplot."))
   
-  (if (null *gnuplot-stream*)
-    (merror (intl:gettext "plotting: I tried to execute ~s but *GNUPLOT-STREAM* is still null.~%") path))
-
   ;; set mouse must be the first command send to gnuplot
   (send-gnuplot-command "set mouse"))
 
@@ -132,15 +127,15 @@ sin(y)*(10.0+6*cos(x)),
   (if (null *gnuplot-stream*)
       (start-gnuplot-process $gnuplot_command)))
 
-(defmfun $gnuplot_close ()
+(defun $gnuplot_close ()
   (stop-gnuplot-process)
   "")
 
-(defmfun $gnuplot_start ()
+(defun $gnuplot_start ()
   (check-gnuplot-process)
   "")
 
-(defmfun $gnuplot_restart ()
+(defun $gnuplot_restart ()
   ($gnuplot_close)
   ($gnuplot_start))
 
@@ -150,27 +145,18 @@ sin(y)*(10.0+6*cos(x)),
         (close *gnuplot-stream*)
         (setq *gnuplot-stream* nil))))
 
-(defun send-gnuplot-command (command &optional recursive)
+(defun send-gnuplot-command (command)
   (if (null *gnuplot-stream*)
       (start-gnuplot-process $gnuplot_command))
-  (handler-case (unless (null command)
-		  (format *gnuplot-stream* "~a ~%" command)
-		  (force-output *gnuplot-stream*))
-    (error (e)
-      ;; allow gnuplot to restart if stream-error, or just an error is signaled
-      ;; only try to restart once, to prevent an infinite loop 
-      (cond (recursive
-	     (error e))
-	    (t
-	     (warn "~a~%Trying new stream.~%" e)
-	     (setq *gnuplot-stream* nil)
-	     (send-gnuplot-command command t))))))
+  (when (not (null command))
+    (format *gnuplot-stream* "~a ~%" command)
+    (force-output *gnuplot-stream*)))
 
-(defmfun $gnuplot_reset ()
+(defun $gnuplot_reset ()
   (send-gnuplot-command "unset output")
   (send-gnuplot-command "reset"))
 
-(defmfun $gnuplot_replot (&optional s)
+(defun $gnuplot_replot (&optional s)
   (if (null *gnuplot-stream*)
       (merror (intl:gettext "gnuplot_replot: Gnuplot is not running.")))
   (cond ((null s)
@@ -184,7 +170,7 @@ sin(y)*(10.0+6*cos(x)),
 
 ;; allow this to be set in a system init file (sys-init.lsp)
 
-(defmfun $get_plot_option (&optional name n)
+(defun $get_plot_option (&optional name n)
   (let (options)
     ;; Converts the options property list into a Maxima list
     (do* ((list (copy-tree *plot-options*) (cddr list))
@@ -218,11 +204,11 @@ sin(y)*(10.0+6*cos(x)),
                        `(,val))))
     (ensure-string (nth (mod (- index 1) (length val-list)) val-list))))
 
-(defmfun $set_plot_option (&rest value)
+(defun $set_plot_option (&rest value)
   (setq *plot-options* (plot-options-parser value *plot-options*))
   ($get_plot_option))
 
-(defmfun $remove_plot_option (name)
+(defun $remove_plot_option (name)
   (remf *plot-options*
         (case name
           ($adapt_depth :adapt_depth) ($axes :axes) ($azimuth :azimuth)
@@ -355,7 +341,7 @@ sin(y)*(10.0+6*cos(x)),
            )
     tem))
 
-(defmfun $rotation1 (phi th)
+(defun $rotation1 (phi th)
   (let ((sinph (sin phi))
         (cosph (cos phi))
         (sinth (sin th))
@@ -370,7 +356,7 @@ sin(y)*(10.0+6*cos(x)),
        ,cosph))))
    
 ;; pts is a vector of bts [x0,y0,z0,x1,y1,z1,...] and each tuple xi,yi,zi is rotated
-#-abcl (defmfun $rotate_pts(pts rotation-matrix)
+#-abcl (defun $rotate_pts(pts rotation-matrix)
   (or ($matrixp rotation-matrix) (merror (intl:gettext "rotate_pts: second argument must be a matrix.")))
   (let* ((rot *rot*)
          (l (length pts))
@@ -394,12 +380,12 @@ sin(y)*(10.0+6*cos(x)),
                   (setf (aref pts (+ j i )) a))
            (setf j (+ j 3)))))
 
-(defmfun $rotate_list (x)
+(defun $rotate_list (x)
   (cond ((and ($listp x) (not (mbagp (second x))))
          ($list_matrix_entries (ncmul2  $rot x)))
         ((mbagp x) (cons (car x) (mapcar '$rotate_list (cdr x))))))
 
-(defmfun $get_range (pts k &aux (z 0.0) (max most-negative-flonum) (min most-positive-flonum))
+(defun $get_range (pts k &aux (z 0.0) (max most-negative-flonum) (min most-positive-flonum))
   (declare (type flonum z max min))
   (declare (type (vector flonum) pts))
   (loop for i from k below (length pts) by 3
@@ -408,7 +394,7 @@ sin(y)*(10.0+6*cos(x)),
          (cond ((> z max) (setq max z))))
   (list min max (- max min)))
 
-(defmfun $polar_to_xy (pts &aux (r 0.0) (th 0.0))
+(defun $polar_to_xy (pts &aux (r 0.0) (th 0.0))
   (declare (type flonum r th))
   (declare (type (cl:array t) pts))
   (assert (typep pts '(vector t)))
@@ -424,7 +410,7 @@ sin(y)*(10.0+6*cos(x)),
 ;; where expr gives the value of r in terms of the inclination (th)
 ;; and azimuth (ph).
 ;;
-(defmfun $spherical_to_xyz (pts &aux (r 0.0) (th 0.0) (ph 0.0)) 
+(defun $spherical_to_xyz (pts &aux (r 0.0) (th 0.0) (ph 0.0)) 
   (declare (type flonum r th ph))
   (declare (type (cl:array t) pts))
   (assert (typep pts '(vector t)))
@@ -439,7 +425,7 @@ sin(y)*(10.0+6*cos(x)),
 
 ;; return a function suitable for the transform function in plot3d.
 ;; FX, FY, and FZ are functions of three arguments.
-(defmfun $make_transform (lvars fx fy fz)
+(defun $make_transform (lvars fx fy fz)
   (setq fx (coerce-float-fun fx lvars))
   (setq fy (coerce-float-fun fy lvars))
   (setq fz (coerce-float-fun fz lvars))
@@ -719,7 +705,7 @@ sin(y)*(10.0+6*cos(x)),
          (setq i2 (+ i2 1))))
 
 
-(defmfun $concat_polygons (pl1 pl2 &aux tem new)
+(defun $concat_polygons (pl1 pl2 &aux tem new)
   (setq new
         (loop for v in pl1 
                for w in pl2
@@ -746,7 +732,7 @@ sin(y)*(10.0+6*cos(x)),
          with arnew =  (polygon-edges new)
          do (setf (aref arnew i) (+ lpts1 (aref ar2 j)))))
 
-(defmfun $copy_pts(lis vec start)
+(defun $copy_pts(lis vec start)
   (declare (fixnum start))
   (let ((tem vec))
     (declare (type (cl:array flonum) tem))
@@ -762,16 +748,74 @@ sin(y)*(10.0+6*cos(x)),
 ;; parametric ; [parametric,xfun,yfun,[t,tlow,thigh],[nticks ..]]
 ;; the rest of the parametric list after the list will add to the plot options
 
-(defun draw2d-parametric-adaptive (param options &aux range)
-  (or (= ($length param) 4)
-      (merror (intl:gettext "plot2d: parametric plots must include two expressions and an interval")))
-  (setq range (nth 4 param))
-  (or (and ($listp range) (symbolp (second range)) (eql ($length range) 3))
-      (merror (intl:gettext "plot2d: wrong interval for parametric plot: ~M") range))
-  (setq range (check-range range))
-  (let* ((nticks (getf options :nticks))
-         (trange (cddr range))
-         (tvar (second range))
+;; TODO: This should be removed after some time, once adaptive
+;; plotting has received enough testing and debugging.
+(defmvar $use_adaptive_parametric_plot t
+  "If true, parametric plots use adaptive plotting")
+
+(defun draw2d-parametric (param range1 plot-options &aux range tem)
+  (cond ((and ($listp (setq tem (nth 4 param)))
+              (symbolp (cadr tem))
+              (eql ($length tem) 3))
+         ;; sure looks like a range
+         (setq range (check-range tem))))
+  (let* ((options 
+          (plot-options-parser
+           (if range1 (cons range1 (cddddr param)) (cddddr param))
+           plot-options))
+         (nticks (getf options :nticks))
+         (trange (or (cddr range) (getf options :t)))
+         (tvar (or (cadr range) '$t))
+         (xrange (or (getf options :x) (getf options :xbounds)))
+         (yrange (or (getf options :y) (getf options :ybounds)))
+         (tmin (coerce-float (first trange)))
+         (tmax (coerce-float (second trange)))
+         (xmin (coerce-float (first xrange)))
+         (xmax (coerce-float (second xrange)))
+         (ymin (coerce-float (first yrange)))
+         (ymax (coerce-float (second yrange)))
+         (x 0.0)         ; have to initialize to some floating point..
+         (y 0.0)
+         (tt tmin)
+         (eps (/ (- tmax tmin) (- nticks 1)))
+         f1 f2 in-range-y in-range-x in-range last-ok 
+         )
+    (declare (type flonum x y tt ymin ymax xmin xmax tmin tmax eps))
+    (setq f1 (coerce-float-fun (third param) `((mlist), tvar)))
+    (setq f2 (coerce-float-fun (fourth param) `((mlist), tvar)))
+    (cons '(mlist simp)    
+          (loop 
+           do 
+           (setq x (funcall f1 tt))
+           (setq y (funcall f2 tt))
+           (setq in-range-y (and (<= y ymax) (>= y ymin)))
+           (setq in-range-x  (and  (<= x xmax) (>= x xmin)))
+           (setq in-range (and in-range-x in-range-y))
+           when (and (not in-range) (not last-ok))
+           collect  'moveto and collect 'moveto
+           do
+           (setq last-ok in-range)
+           collect (if in-range-x x (if (> x xmax) xmax xmin))
+           collect (if in-range-y y (if (> y ymax) ymax ymin))
+           when (>= tt tmax) do (loop-finish)
+           do (setq tt (+ tt eps))
+           (if (>= tt tmax) (setq tt tmax))
+           )))
+  )
+
+(defun draw2d-parametric-adaptive (param range1 plot-options &aux range tem)
+  (cond ((and ($listp (setq tem (nth 4 param)))
+              (symbolp (cadr tem))
+              (eql ($length tem) 3))
+         ;; sure looks like a range
+         (setq range (check-range tem))))
+  (let* ((options 
+          (plot-options-parser
+           (if range1 (cons range1 (cddddr param)) (cddddr param))
+           plot-options))
+         (nticks (getf options :nticks))
+         (trange (or (cddr range) (getf options :t)))
+         (tvar (or (cadr range) '$t))
          (xrange (or (getf options :x) (getf options :xbounds)))
          (yrange (or (getf options :y) (getf options :ybounds)))
          (tmin (coerce-float (first trange)))
@@ -1127,7 +1171,9 @@ sin(y)*(10.0+6*cos(x)),
 (defun draw2d (fcn range plot-options)
   (if (and ($listp fcn) (equal '$parametric (cadr fcn)))
       (return-from draw2d
-        (draw2d-parametric-adaptive fcn plot-options)))
+        (if $use_adaptive_parametric_plot
+            (draw2d-parametric-adaptive fcn range plot-options)
+            (draw2d-parametric fcn range plot-options))))
   (if (and ($listp fcn) (equal '$discrete (cadr fcn)))
       (return-from draw2d (draw2d-discrete fcn)))
   (let* ((nticks (getf plot-options :nticks))
@@ -1281,13 +1327,9 @@ sin(y)*(10.0+6*cos(x)),
 (defvar $xmaxima_plot_command "xmaxima")
 
 (defun plot-temp-file (file)
-  (let ((filename 
-	 (if *maxima-tempdir* 
-	     (format nil "~a/~a" *maxima-tempdir* file)
-	   file)))
-    (setf (gethash filename *temp-files-list*) t)
-    (format nil "~a" filename)
-    ))
+  (if *maxima-tempdir* 
+    (format nil "~a/~a" *maxima-tempdir* file)
+    file))
 
 ;; If no file path is given, uses temporary directory path
 (defun plot-file-path (file)
@@ -1712,7 +1754,7 @@ sin(y)*(10.0+6*cos(x)),
 ;; plot2d ( x^2-1, [x, -3, 3], [y, -2, 10], [box, false], [color, red],
 ;;          [ylabel, "x^2-1"], [plot_format, xmaxima])$
 
-(defmfun $plot2d (fun &optional range &rest extra-options)
+(defun $plot2d (fun &optional range &rest extra-options)
   (let (($display2d nil) (*plot-realpart* *plot-realpart*)
         (options (copy-tree *plot-options*)) (i 0)
         output-file gnuplot-term gnuplot-out-file file points-lists)
@@ -1721,10 +1763,16 @@ sin(y)*(10.0+6*cos(x)),
     ;; that can be expressions (simple functions) and maxima lists (parametric
     ;; functions or discrete sets of points).
 
-    ;; A single parametric or discrete plot is placed inside a maxima list
+    ;; If there is a single parametric function use its range as the range for
+    ;; the plot and put it inside another maxima list
     (setf (getf options :type) "plot2d")
-    (when (and (consp fun)
-               (or (eq (second fun) '$parametric) (eq (second fun) '$discrete)))
+    (when (and (consp fun) (eq (second fun) '$parametric))
+      (unless range
+        (setq range (check-range (nth 4 fun))))
+      (setq fun `((mlist) ,fun)))
+
+    ;; If there is a single set of discrete points put it inside a maxima list
+    (when (and (consp fun) (eq (second fun) '$discrete))
       (setq fun `((mlist) ,fun)))
 
     ;; If at this point fun is not a maxima list, it is then a single function
@@ -1920,11 +1968,11 @@ sin(y)*(10.0+6*cos(x)),
             (setq output-file (gnuplot-print-header st options))
             (format st "plot")
             (when (getf options :x)
-              (format st " [~{~g~^ : ~}]" (getf options :x)))
+              (format st " [~{~,8f~^ : ~}]" (getf options :x)))
             (when (getf options :y)
               (unless (getf options :x)
                 (format st " []")) 
-              (format st " [~{~g~^ : ~}]" (getf options :y))))
+              (format st " [~{~,8f~^ : ~}]" (getf options :y))))
            ($gnuplot_pipes
             (check-gnuplot-process)
             ($gnuplot_reset)
@@ -1935,7 +1983,7 @@ sin(y)*(10.0+6*cos(x)),
                *gnuplot-command*
                ($sconcat
                 *gnuplot-command* 
-                (format nil " [~{~g~^ : ~}]" (getf options :x)))))
+                (format nil " [~{~,8f~^ : ~}]" (getf options :x)))))
             (when (getf options :y) 
               (unless (getf options :x)
                 (setq *gnuplot-command*
@@ -1944,7 +1992,7 @@ sin(y)*(10.0+6*cos(x)),
                *gnuplot-command*
                ($sconcat
                 *gnuplot-command* 
-                (format nil " [~{~g~^ : ~}]"  (getf options :y)))))))
+                (format nil " [~{~,8f~^ : ~}]"  (getf options :y)))))))
          (let ((legend (getf options :legend))
                (colors (getf options :color))
                (types (getf options :point_type))
@@ -2061,7 +2109,7 @@ sin(y)*(10.0+6*cos(x)),
                            (first (getf options :x))
                            (first (getf options :y)))
                       (format
-                       st "~g ~g ~%"
+                       st "~,8f ~,8f ~%"
                        (first (getf options :x))
                        (first (getf options :y))))))))))
     
@@ -2080,7 +2128,7 @@ sin(y)*(10.0+6*cos(x)),
   (and (symbolp x) (char= (char (symbol-value x) 0) #\$)))
 
 
-(defmfun $tcl_output (lis i &optional (skip 2))
+(defun $tcl_output (lis i &optional (skip 2))
   (when (not (typep i 'fixnum))
     (merror
       (intl:gettext "tcl_ouput: second argument must be an integer; found ~M")
@@ -2129,7 +2177,7 @@ sin(y)*(10.0+6*cos(x)),
            (intl:gettext "plotting: no range given; must supply range of the form [variable, min, max]"))))
   `((mlist) ,(car tem) ,(float a) ,(float b)))
 
-(defmfun $zero_fun (x y) x y 0.0)
+(defun $zero_fun (x y) x y 0.0)
 
 (defun output-points (pl &optional m)
   "If m is supplied print blank line every m lines"
@@ -2206,7 +2254,7 @@ sin(y)*(10.0+6*cos(x)),
 ;;   contour_plot (F, [u, -4, 4], [v, -4, 4]); => error: must be gnuplot format
 ;;   contour_plot (F, [u, -4, 4], [v, -4, 4], [plot_format, gnuplot]);
 
-(defmfun $contour_plot (expr &rest optional-args)
+(defun $contour_plot (expr &rest optional-args)
   (let*
       ((plot-format-in-options (getf *plot-options* :plot_format))
        (plot-format-in-arguments
@@ -2283,7 +2331,7 @@ sin(y)*(10.0+6*cos(x)),
 ;; plot3d ( V, [x, -2, 2], [y, -2, 2], [z, -4, 4])$
 
 
-(defmfun $plot3d
+(defun $plot3d
     (fun &rest extra-options
      &aux
        lvars trans xrange yrange
