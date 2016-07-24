@@ -13,4 +13,5 @@ install:
 script:
  - ./bootstrap
  - ./configure --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64
- - make && make check
+ - make
+ - make check
