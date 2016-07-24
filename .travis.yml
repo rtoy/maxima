@@ -1,10 +1,13 @@
 # Travis CI for maxima.
 # View build status at http://travis-ci.org/rtoy/maxima/builds
 #
+# Install packages we need
+before_install:
+ - sudo apt-get install -y texinfo
+
 # Get lisp binary to use
 install:
  - curl http://ccl.clozure.com/ftp/pub/release/1.11/ccl-1.11-linuxx86.tar.gz | tar xzf -
- - sudo apt-get install texinfo
 
 # Build and run layout tests
 script:
