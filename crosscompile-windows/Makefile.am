@@ -7,6 +7,6 @@ EXTRA_DIST =\
  wxmaxima-16.04.2-patch\
  Toolchain-mingw32.cmake\
  setup-imaxima-imath.el-patch.tmpl\
- sbcl.sh.tmpl\
+ sbcl.sh.tmpl licenses.html\
  lispselector.bat lispselector.tcl\
  xmaxima.bat downloads/.keep build/.keep
