@@ -60,23 +60,23 @@
 
 (defvar *tex-environment-default* '("$$" . "$$"))
 
-(defmfun $set_tex_environment_default (env-open env-close)
+(defun $set_tex_environment_default (env-open env-close)
   (setq env-open ($sconcat env-open))
   (setq env-close ($sconcat env-close))
   (setq *tex-environment-default* `(,env-open . ,env-close))
   ($get_tex_environment_default))
 
-(defmfun $get_tex_environment_default ()
+(defun $get_tex_environment_default ()
   `((mlist) ,(car *tex-environment-default*) ,(cdr *tex-environment-default*)))
 
-(defmfun $set_tex_environment (x env-open env-close)
+(defun $set_tex_environment (x env-open env-close)
   (setq env-open ($sconcat env-open))
   (setq env-close ($sconcat env-close))
   (if (getopr x) (setq x (getopr x)))
   (setf (get x 'tex-environment) `(,env-open . ,env-close))
   ($get_tex_environment x))
 
-(defmfun $get_tex_environment (x)
+(defun $get_tex_environment (x)
   (if (getopr x) (setq x (getopr x)))
   (let ((e (get-tex-environment x)))
     `((mlist) ,(car e) ,(cdr e))))
@@ -271,51 +271,49 @@
   (if (eql x #\|) "\\mbox{\\verb/|/}"
       (concatenate 'string "\\mbox{\\verb|" (string x) "|}")))
 
+(defvar *tex-translations* nil)
+;; '(("ab" . "a")("x" . "x")) would cause  AB12 and X3 C4 to print a_{12} and x_3 C_4
+
 ;; Read forms from file F1 and output them to F2
 (defun tex-forms (f1 f2 &aux tem (eof *mread-eof-obj*))
   (with-open-file (st f1)
     (loop while (not (eq (setq tem (mread-raw st eof)) eof))
 	   do (tex1 (third tem) f2))))
 
-;; Detect and extract groups of trailing digits, e.g. foo_mm_nn.
-;; and then punt foo[mm, nn] to TEX-ARRAY.
-;; Otherwise, treat SYM as a simple symbol.
+(defun tex-stripdollar (x)
+  (let ((s (maybe-invert-string-case (symbol-name (tex-stripdollar0 x)))))
+    (if (> (length s) 1)
+      (concatenate 'string "{\\it " s "}")
+      s)))
 
-(defun tex-stripdollar (sym)
-  (let
-    ((nn-list (extract-trailing-digits (symbol-name sym))))
-    (if nn-list
-      ;; SYM matches foo_mm_nn.
-      (apply #'concatenate 'string (tex-array `((,(intern (first nn-list)) 'array) ,@(rest nn-list)) nil nil))
-      ;; SYM is a simple symbol.
-      (let ((s (maybe-invert-string-case (quote-% (stripdollar sym)))))
-        (if (> (length s) 1)
-          (concatenate 'string "{\\it " s "}")
-          s)))))
-
-;; Given a string foo_mm_nn, return foo, mm, and nn,
-;; where mm and nn are integers (not strings of digits).
-;; Return NIL if argument doesn't have trailing digits.
-
-(defun extract-trailing-digits (s)
-  (let (nn-list)
-    ;; OK (loop while (funcall #.(maxima-nregex::regex-compile "[^_](__*)([0-9][0-9]*)$") s)
-    ;; NOPE (loop while (funcall #.(maxima-nregex::regex-compile "[^0-9_](_*)([0-9][0-9]*)$") s)
-    (loop with nn-string while
-          (or (and
-                (funcall #.(maxima-nregex::regex-compile "[^_](__*)([0-9][0-9]*)$") s)
-                (let*
-                  ((group-_ (aref maxima-nregex::*regex-groups* 1))
-                   (group-nn (aref maxima-nregex::*regex-groups* 2)))
-                  (setq nn-string (subseq s (first group-nn) (second group-nn)))
-                  (setq s (subseq s 0 (first group-_)))))
-              (and
-                (funcall #.(maxima-nregex::regex-compile "[^_]([0-9][0-9]*)$") s)
-                (let* ((group-nn (aref maxima-nregex::*regex-groups* 1)))
-                  (setq nn-string (subseq s (first group-nn) (second group-nn)))
-                  (setq s (subseq s 0 (first group-nn))))))
-          do (push (parse-integer nn-string) nn-list))
-    (and nn-list (cons s nn-list))))
+(defun tex-stripdollar0 (sym)
+  (or (symbolp sym) (return-from tex-stripdollar0  sym))
+  (let* ((pname (quote-% (stripdollar sym)))
+	 (l (length pname))
+	 (begin-sub
+	  (loop for i downfrom (1- l)
+		 when (not (digit-char-p (aref pname i)))
+		 do (return (1+ i))))
+	 (tem  (make-array (+ l 4) :element-type ' #.(array-element-type "abc") :fill-pointer 0)))
+    (loop for i below l
+	   do
+	   (cond ((eql i begin-sub)
+		  (let ((a (assoc tem  *tex-translations* :test 'equal)))
+		    (cond (a
+			   (setq a (cdr a))
+			   (setf (fill-pointer tem) 0)
+			   (loop for i below (length a)
+				  do
+				  (vector-push (aref a i) tem)))))
+		  (vector-push #\_ tem)
+		  (unless (eql i (- l 1))
+		    (vector-push #\{ tem)
+		    (setq begin-sub t))))
+		  (vector-push (aref pname i) tem)
+	   finally
+	   (cond ((eql begin-sub t)
+		  (vector-push #\} tem))))
+    (intern tem)))
 
 (defun strcat (&rest args)
   (apply #'concatenate 'string (mapcar #'string args)))
@@ -483,7 +481,7 @@
 (defprop %gamma_incomplete "\\Gamma" texword)
 (defprop %gamma_incomplete_regularized "Q" texword)
 (defprop %gamma_incomplete_generalized "\\Gamma" texword)
-(defprop $gamma_incomplete_lower "\\gamma" texword)
+(defprop $gamma_greek "\\gamma" texword)
 (defprop $delta "\\delta" texword)
 (defprop $epsilon "\\varepsilon" texword)
 (defprop $zeta "\\zeta" texword)
@@ -583,7 +581,7 @@
        (doit (and
 	      f ; there is such a function
 	      (tex-mexpt-trig-like-fn-p f) ; f is trig-like
-	      (member (get-first-char f) '(#\% #\$) :test #'char=) ;; insist it is a % or $ function
+	      (member (getcharn f 1) '(#\% #\$)) ;; insist it is a % or $ function
 	      (not (member 'array (cdar fx) :test #'eq)) ; fix for x[i]^2
 	      (or (and (atom expon) (not (numberp expon))) ; f(x)^y is ok
 		  (and (atom expon) (numberp expon) (> expon 0))))))
@@ -659,14 +657,12 @@
 
 (defprop $matrix tex-matrix tex)
 
-;; Tex dialects either offer a \pmatrix command or a pmatrix environment
-;; so we let the TeX decide which one to use.
 (defun tex-matrix(x l r) ;;matrix looks like ((mmatrix)((mlist) a b) ...)
-  (append l `("\\ifx\\endpmatrix\\undefined\\pmatrix{\\else\\begin{pmatrix}\\fi ")
+  (append l `("\\pmatrix{")
 	  (mapcan #'(lambda(y)
 		      (tex-list (cdr y) nil (list "\\cr ") "&"))
 		  (cdr x))
-	  '("\\ifx\\endpmatrix\\undefined}\\else\\end{pmatrix}\\fi ") r))
+	  '("}") r))
 
 ;; macsyma sum or prod is over integer range, not  low <= index <= high
 ;; TeX is lots more flexible .. but
@@ -958,11 +954,13 @@
 				   (make-list ord :initial-element var))
 			       vars ords)))))))
 
-(defun odds (list c)
-  (ecase c
-    (1 (loop for e in list by #'cddr collect e))         ;; get the odd terms  (first, third...)
-    (0 (loop for e in (cdr list) by #'cddr collect e)))) ;; get the (second, fourth ... ) element
+(defun odds(n c)
+  ;; if c=1, get the odd terms  (first, third...)
+  (cond ((null n) nil)
+	((= c 1)(cons (car n)(odds (cdr n) 0)))
+	((= c 0)(odds (cdr n) 1))))
 
+;;
 ;; The format of MCOND expressions is documented above the definition
 ;; of DIM-MCOND in displa.lisp.  Here are some examples:
 ;;
@@ -1081,7 +1079,7 @@
   (append l (cons (format nil "\\hspace{~dmm}" (* 3 (cadr x))) r)))
 
 ;; run some code initialize file before $tex is run
-(defmfun $texinit(file)
+(defun $texinit(file)
 (declare (ignore file))
   '$done)
 
@@ -1089,7 +1087,7 @@
 ;; probably have no trouble spotting, and will generally be unnecessary, since
 ;; we anticipate almost all use of tex would be involved in inserting this
 ;; stuff into larger files that would have their own \\end or equivalent.
-(defmfun $texend(filename)
+(defun $texend(filename)
   (with-open-file (st (stripdollar filename)  :direction :output
 		      :if-exists :append :if-does-not-exist :create)
     (format st "\\end~%"))
@@ -1117,7 +1115,7 @@
 ;; Convenience function to allow user to process expression X
 ;; and get a string (TeX output for X) in return.
 
-(defmfun $tex1 (x) (reduce #'strcat (tex x nil nil 'mparen 'mparen)))
+(defun $tex1 (x) (reduce #'strcat (tex x nil nil 'mparen 'mparen)))
 
 ;; Undone and trickier:
 ;; handle reserved symbols stuff, just in case someone
@@ -1130,7 +1128,7 @@
 
 ;;  The texput function was written by Barton Willis.
 
-(defmfun $texput (e s &optional tx)
+(defun $texput (e s &optional tx)
 
   (cond
     ((stringp e)
