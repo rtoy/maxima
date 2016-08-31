@@ -31,9 +31,7 @@
 ;; Let's have version numbers 1,2,3,...
 
 (eval-when (:load-toplevel :execute)
-  ($put '$nummod 3 '$version)
-  ;; Let's remove built-in symbols from list for user-defined properties.
-  (setq $props (remove '$nummod $props)))
+  ($put '$nummod 3 '$version))
 
 (defmacro opcons (op &rest args)
   `(simplify (list (list ,op) ,@args)))
@@ -49,8 +47,7 @@
   (declare (ignore yy))
   (oneargcheck e)
   (setq e (take '($is) (simplifya (specrepcheck (second e)) z)))
-  (let* (($prederror nil)
-	 (bool (mevalp e)))
+  (let ((bool (mevalp e)))
     (cond ((eq t bool) 1)
 	  ((eq nil bool) 0)
 	  ((op-equalp e '$is) `(($charfun simp) ,(second e)))
@@ -247,21 +244,19 @@
 (defprop $floor simplim%floor simplim%function)
 
 (defun simplim%floor (expr var val)
-  (let* ((arg (cadr expr))
-	 (b (behavior arg var val))
-	 (arglimab (limit arg var val 'think)) ; with $zeroa $zerob
-	 (arglim (ridofab arglimab)))
-    (cond ((and (= b -1)
+  (let ((arg (cadr expr))
+	(arglim (ridofab (limit (cadr expr) var val 'think))))
+    (cond ((and (eq ($csign (m- arg arglim)) '$neg)
 		(maxima-integerp arglim))
 	   (m- arglim 1))
-	  ((and (= b 1)
+	  ((and (eq ($csign (m- arg arglim)) '$pos)
 		(maxima-integerp arglim))
 	   arglim)
 	  ((and (mnump arglim)
 		(not (maxima-integerp arglim)))
 	   (simplify (list '($floor) arglim)))
 	  (t
-	   (throw 'limit nil)))))
+	   nil))))
 
 (defprop $ceiling tex-matchfix tex)
 (defprop $ceiling (("\\left \\lceil " ) " \\right \\rceil") texsym)
@@ -313,21 +308,19 @@
 (defprop $ceiling simplim%ceiling simplim%function)
 
 (defun simplim%ceiling (expr var val)
-  (let* ((arg (cadr expr))
-	 (b (behavior arg var val))
-	 (arglimab (limit arg var val 'think)) ; with $zeroa $zerob
-	 (arglim (ridofab arglimab)))
-    (cond ((and (= b -1)
+  (let ((arg (cadr expr))
+	(arglim (ridofab (limit (cadr expr) var val 'think))))
+    (cond ((and (eq ($csign (m- arg arglim)) '$neg)
 		(maxima-integerp arglim))
 	   arglim)
-	  ((and (= b 1)
+	  ((and (eq ($csign (m- arg arglim)) '$pos)
 		(maxima-integerp arglim))
 	   (m+ arglim 1))
 	  ((and (mnump arglim)
 		(not (maxima-integerp arglim)))
 	   (simplify (list '($ceiling) arglim)))
 	  (t
-	   (throw 'limit nil)))))
+	   nil))))
 
 
 (defprop $mod simp-nummod operators)
@@ -390,21 +383,19 @@
 (defprop %round simplim%round simplim%function)
 
 (defun simplim%round (expr var val)
-  (let* ((arg (cadr expr))
-	 (b (behavior arg var val))
-	 (arglimab (limit arg var val 'think)) ; with $zeroa $zerob
-	 (arglim (ridofab arglimab)))
-    (cond ((and (= b -1)
+  (let ((arg (cadr expr))
+	(arglim (ridofab (limit (cadr expr) var val 'think))))
+    (cond ((and (eq ($csign (m- arg arglim)) '$neg)
 		(maxima-integerp (m+ 1//2 arglim)))
 	   (m- arglim 1//2))
-	  ((and (= b 1)
+	  ((and (eq ($csign (m- arg arglim)) '$pos)
 		(maxima-integerp (m+ 1//2 arglim)))
 	   (m+ arglim 1//2))
 	  ((and (mnump arglim)
 		(not (maxima-integerp (m+ 1//2 arglim))))
 	   (simplify (list '(%round) arglim)))
 	  (t
-	   (throw 'limit nil)))))
+	   nil))))
  
 ;; Round a number towards zero.
 
