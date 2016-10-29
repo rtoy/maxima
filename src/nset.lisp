@@ -53,6 +53,10 @@
 ;; Just clobber whatever DEF-OPERATOR put into *OPR-TABLE*.
 (putopr "{" '$set)
 
+;; DEF-OPERATOR makes "{" map to ${, but it needs to map to $SET.
+;; Just clobber whatever DEF-OPERATOR put into *OPR-TABLE*.
+(putopr "{" '$set)
+
 ;; Support for TeXing sets. If your mactex doesn't TeX the empty set
 ;; correctly, get the latest mactex.lisp.
 
