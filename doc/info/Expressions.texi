@@ -385,7 +385,6 @@ The order of the items in the list may depend on the global flag
 See also @mrefcomma{substpart} @mrefcomma{apply} @mrefcomma{funmake} and @mrefdot{op}
 
 How to convert a matrix to a nested list:
-
 @c ===beg===
 @c M:matrix([1,2],[3,4]);
 @c args(M);
@@ -405,7 +404,6 @@ How to convert a matrix to a nested list:
 
 Since maxima internally treats a sum of @code{n} terms as a summation command
 with @code{n} arguments args() can extract the list of terms in a sum:
-
 @c ===beg===
 @c a+b+c;
 @c args(%);
@@ -461,12 +459,10 @@ box.
 
 @code{box} evaluates its argument.  However, a boxed expression does not
 evaluate to its content, so boxed expressions are effectively excluded from
-computations. @mref{rembox} removes the box again.
+computations.
 
 @mref{boxchar} is the character used to draw the box in @code{box} and in the
 @mref{dpart} and @mref{lpart} functions.
-
-See also @mrefcomma{rembox} @mref{dpart} and @mrefdot{lpart}
 
 Examples:
 
@@ -584,18 +580,14 @@ a list or a matrix; consider:
 @c m;
 @c mm;
 @c ===end===
-@example
+@example 
 (%i1) m : [1,[2,3]]$
 (%i2) mm : m$
 (%i3) mm[2][1] : x$
-@group
 (%i4) m;
-(%o4)                      [1, [x, 3]]
-@end group
-@group
+(%o4)                      [1,[x,3]]
 (%i5) mm;
-(%o5)                      [1, [x, 3]]
-@end group
+(%o5)                      [1,[x,3]]
 @end example
 
 Let's try the same experiment, but this time let @var{mm} be a copy of @var{m}
@@ -608,17 +600,13 @@ Let's try the same experiment, but this time let @var{mm} be a copy of @var{m}
 @c mm;
 @c ===end===
 @example
-(%i1) m : [1,[2,3]]$
-(%i2) mm : copy(m)$
-(%i3) mm[2][1] : x$
-@group
-(%i4) m;
-(%o4)                      [1, [2, 3]]
-@end group
-@group
-(%i5) mm;
-(%o5)                      [1, [x, 3]]
-@end group
+(%i6) m : [1,[2,3]]$
+(%i7) mm : copy(m)$
+(%i8) mm[2][1] : x$
+(%i9) m;
+(%o9)                     [1,[2,3]]
+(%i10) mm;
+(%o10)                    [1,[x,3]]
 @end example
 
 This time, the assignment to @var{mm} does not change the value of @var{m}.
@@ -1328,7 +1316,7 @@ Returns the main operator of the expression @var{expr}.
 prefix, binary or n-ary infix, postfix, matchfix, or nofix operator.
 Otherwise, if @var{expr} is a subscripted function expression, @code{op}
 returns the subscripted function; in this case the return value is not an atom.
-Otherwise, @var{expr} is a @mref{memoizing function} or ordinary function expression,
+Otherwise, @var{expr} is an array function or ordinary function expression,
 and @code{op} returns a symbol.
 
 @code{op} observes the value of the global flag @mrefdot{inflag}
@@ -1916,8 +1904,7 @@ the function itself.
 In distinction from @code{subst} the function @code{psubst} makes parallel 
 substitutions, if the first argument @var{list} is a list of equations.
 
-See also @mref{sublis} for making parallel substitutions and @mref{let} and
-@mref{letsimp} for others ways to do substitutions.
+See also @mref{sublis} for making parallel substitutions.
 
 Example:
 
@@ -2069,7 +2056,7 @@ When @var{depth} is greater than or equal to the maximum depth of @var{expr},
 
 Example:
 
-@c ===beg===
+@c === beg ===
 @c e: expand ((a - b)^2)/expand ((exp(a) + exp(b))^2);
 @c reveal (e, 1);
 @c reveal (e, 2);
@@ -2077,7 +2064,7 @@ Example:
 @c reveal (e, 4);
 @c reveal (e, 5);
 @c reveal (e, 6);
-@c ===end===
+@c === end ===
 @example
 (%i1) e: expand ((a - b)^2)/expand ((exp(a) + exp(b))^2);
                           2            2
@@ -2233,9 +2220,6 @@ When @code{opsubst} is @code{false},
 @code{subst} will not attempt to substitute into the operator of an expression.
 E.g. @code{(opsubst: false, subst (x^2, r, r+r[0]))} will work.
 
-See also @mrefcomma{at} @mref{ev} and @mrefcomma{psubst} as well as @mref{let}
-and @mrefdot{letsimp}
-
 Examples:
 
 @c ===beg===
@@ -2279,35 +2263,6 @@ might be expressed as @code{a+b+(-1*c)} internally.
 @example
 (%i3) subst(["+"="-"],a+b-c);
 (%o3)                                 c-b+a
-@end example
-
-The difference between @code{subst} and @code{at} can be seen in the
-following example:
-@c ===beg===
-@c g1:y(t)=a*x(t)+b*diff(x(t),t);
-@c subst('diff(x(t),t)=1,g1);
-@c at(g1,'diff(x(t),t)=1);
-@c ===end===
-@example
-@group
-(%i1) g1:y(t)=a*x(t)+b*diff(x(t),t);
-                            d
-(%o1)             y(t) = b (-- (x(t))) + a x(t)
-                            dt
-@end group
-@group
-(%i2) subst('diff(x(t),t)=1,g1);
-(%o2)                   y(t) = a x(t) + b
-@end group
-@group
-(%i3) at(g1,'diff(x(t),t)=1);
-                              !
-                     d        !
-(%o3)      y(t) = b (-- (x(t))!             ) + a x(t)
-                     dt       !d
-                              !-- (x(t)) = 1
-                               dt
-@end group
 @end example
 
 @noindent
@@ -2483,7 +2438,9 @@ or @code{substpart} is the same as calling @code{inpart} or
 @anchor{symbolp}
 @deffn {Function} symbolp (@var{expr})
 
-Returns @code{true} if @var{expr} is a symbol, else @code{false}.
+Returns @code{true} if @var{expr} is a symbol, else @code{false}.  In effect,
+@code{symbolp(x)} is equivalent to the predicate
+@code{atom(x) and not numberp(x)}.
 
 @c FOLLOWING REALLY WANTS TO BE @xref{Identiifers} BUT THAT
 @c LEAVES THE UNPLEASANT RESIDUE *Note ...:: IN THE OUTPUT OF describe
