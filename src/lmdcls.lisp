@@ -131,9 +131,8 @@
 	  sums tellratlist timesinp tr-abort tr-progret tr-unique
 	  transl-file translate-time-evalables transp
 	  tstack typel user-mesfile varlist wflag
-	  $cflength *trunclist $taylordepth
+	  $wtlevel $cflength *trunclist $taylordepth
 	  $maxtaydiff $verbose $psexpand ps-bmt-disrep
-	  silent-taylor-flag $define_variable $infolists
-	  $factor_max_degree $factor_max_degree_print_warning))
+	  silent-taylor-flag $define_variable $infolists))
 
 (declaim (declaration unspecial))

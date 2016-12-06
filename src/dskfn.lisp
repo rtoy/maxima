@@ -19,9 +19,9 @@
 		      $values $functions $arrays
 		      $contexts context $activecontexts))
 
-(defmvar $packagefile nil)
-(defvar indlist '(evfun evflag bindtest nonarray sp2 sp2subs opers
-                  special autoload assign mode))
+(setq $packagefile nil
+      indlist '(evfun evflag bindtest nonarray sp2 sp2subs opers
+		 special autoload assign mode))
 
 (defun infolstchk (x)
   (let ((iteml (cond ((not (and x (or (member (car x) '($all $contexts) :test #'eq)
@@ -119,7 +119,7 @@
       ((and (or (not (boundp item))
 		(and (eq item '$ratvars) (null varlist))
 		(prog2 (setq val (symbol-value item))
-		    (or (and (eq item '$dontfactor)
+		    (or (and (member item '($dontfactor) :test #'eq)
 			     (null (cdr val)))
 			(and (member item '(tellratlist *alphabet* *ratweights) :test #'eq) (null val))
 			(and (eq item '$features) (alike (cdr val) featurel))
@@ -210,7 +210,7 @@
 	 (fasprint t `(setq varlist (append varlist (quote ,varlist))))
 	 (fasprint t '(setq $ratvars (cons '(mlist simp) varlist)))
 	 (pradd2lnc '$ratvars '$myoptions))
-	((eq item '$dontfactor)
+	((member item '($dontfactor) :test #'eq)
 	 (fasprin `(setq ,item (nconc (quote ,val) (cdr ,item))))
 	 (pradd2lnc item '$myoptions))
 	((eq item 'tellratlist)
