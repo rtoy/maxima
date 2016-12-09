@@ -16,7 +16,7 @@
 @c -----------------------------------------------------------------------------
 
 Lists are the basic building block for Maxima and Lisp.  All data types
-other than arrays, @mref{hashed arrays} and numbers are represented as Lisp lists,
+other than arrays, hash tables and numbers are represented as Lisp lists,
 These Lisp lists have the form
 
 @example
@@ -65,14 +65,11 @@ itself, since after it has been through the simplifier the list would become
 @code{[} and @code{]} mark the beginning and end, respectively, of a list.
 
 @code{[} and @code{]} also enclose the subscripts of
-a list, array, @mrefcomma{hashed array} or @mrefdot{memoizing function} Note that
+a list, array, hash array, or array function. Note that
 other than for arrays accessing the @code{n}th element of a list
 may need an amount of time that is roughly proportional to  @code{n},
 @xref{Performance considerations for Lists}.
 
-Note that if an element of a subscripted variable is written to before
-a list or an array of this name is declared a @mref{hashed array}
-@xref{Arrays}) is created, not a list.
 
 Examples:
 
@@ -762,164 +759,6 @@ Note that @code{firstn(@var{expr}, 1)} is not the same as @code{first(@var{expr}
 @end deffn
 
 @c -----------------------------------------------------------------------------
-@anchor{firstn}
-@deffn {Function} firstn (@var{expr}, @var{count})
-
-Returns the first @var{count} arguments of @var{expr}, if @var{expr} has at least @var{count} arguments.
-Returns @var{expr} if @var{expr} has less than @var{count} arguments.
-
-@var{expr} may be any nonatomic expression. 
-When @var{expr} is something other than a list,
-@code{firstn} returns an expression which has the same operator as @var{expr}.
-@var{count} must be a nonnegative integer.
-
-@code{firstn} honors the global flag @code{inflag},
-which governs whether the internal form of an expression is processed (when @code{inflag} is true)
-or the displayed form (when @code{inflag} is false).
-
-Note that @code{firstn(@var{expr}, 1)},
-which returns a nonatomic expression containing the first argument,
-is not the same as @code{first(@var{expr})},
-which returns the first argument by itself.
-
-See also @mref{lastn} and @mrefdot{rest}
-
-Examples:
-
-@code{firstn} returns the first @var{count} elements of @var{expr}, if @var{expr} has at least @var{count} elements.
-
-@c ===beg===
-@c mylist : [1, a, 2, b, 3, x, 4 - y, 2*z + sin(u)];
-@c firstn (mylist, 0);
-@c firstn (mylist, 1);
-@c firstn (mylist, 2);
-@c firstn (mylist, 7);
-@c ===end===
-@example
-@group
-(%i1) mylist : [1, a, 2, b, 3, x, 4 - y, 2*z + sin(u)];
-(%o1)        [1, a, 2, b, 3, x, 4 - y, 2 z + sin(u)]
-@end group
-@group
-(%i2) firstn (mylist, 0);
-(%o2)                          []
-@end group
-@group
-(%i3) firstn (mylist, 1);
-(%o3)                          [1]
-@end group
-@group
-(%i4) firstn (mylist, 2);
-(%o4)                        [1, a]
-@end group
-@group
-(%i5) firstn (mylist, 7);
-(%o5)               [1, a, 2, b, 3, x, 4 - y]
-@end group
-@end example
-
-@code{firstn} returns @var{expr} if @var{expr} has less than @var{count} elements.
-
-@c ===beg===
-@c mylist : [1, a, 2, b, 3, x, 4 - y, 2*z + sin(u)];
-@c firstn (mylist, 100);
-@c ===end===
-@example
-@group
-(%i1) mylist : [1, a, 2, b, 3, x, 4 - y, 2*z + sin(u)];
-(%o1)        [1, a, 2, b, 3, x, 4 - y, 2 z + sin(u)]
-@end group
-@group
-(%i2) firstn (mylist, 100);
-(%o2)        [1, a, 2, b, 3, x, 4 - y, 2 z + sin(u)]
-@end group
-@end example
-
-@var{expr} may be any nonatomic expression. 
-
-@c ===beg===
-@c myfoo : foo(1, a, 2, b, 3, x, 4 - y, 2*z + sin(u));
-@c firstn (myfoo, 4);
-@c mybar : bar[m, n](1, a, 2, b, 3, x, 4 - y, 2*z + sin(u));
-@c firstn (mybar, 4);
-@c mymatrix : genmatrix (lambda ([i, j], 10*i + j), 10, 4) $
-@c firstn (mymatrix, 3);
-@c ===end===
-@example
-@group
-(%i1) myfoo : foo(1, a, 2, b, 3, x, 4 - y, 2*z + sin(u));
-(%o1)      foo(1, a, 2, b, 3, x, 4 - y, 2 z + sin(u))
-@end group
-@group
-(%i2) firstn (myfoo, 4);
-(%o2)                    foo(1, a, 2, b)
-@end group
-@group
-(%i3) mybar : bar[m, n](1, a, 2, b, 3, x, 4 - y, 2*z + sin(u));
-(%o3)    bar    (1, a, 2, b, 3, x, 4 - y, 2 z + sin(u))
-            m, n
-@end group
-@group
-(%i4) firstn (mybar, 4);
-(%o4)                  bar    (1, a, 2, b)
-                          m, n
-@end group
-(%i5) mymatrix : genmatrix (lambda ([i, j], 10*i + j), 10, 4) $
-@group
-(%i6) firstn (mymatrix, 3);
-                       [ 11  12  13  14 ]
-                       [                ]
-(%o6)                  [ 21  22  23  24 ]
-                       [                ]
-                       [ 31  32  33  34 ]
-@end group
-@end example
-
-@code{firstn} honors the global flag @code{inflag}.
-
-@c ===beg===
-@c myexpr : a + b + c + d + e;
-@c firstn (myexpr, 3), inflag=true;
-@c firstn (myexpr, 3), inflag=false;
-@c ===end===
-@example
-@group
-(%i1) myexpr : a + b + c + d + e;
-(%o1)                   e + d + c + b + a
-@end group
-@group
-(%i2) firstn (myexpr, 3), inflag=true;
-(%o2)                       c + b + a
-@end group
-@group
-(%i3) firstn (myexpr, 3), inflag=false;
-(%o3)                       e + d + c
-@end group
-@end example
-
-Note that @code{firstn(@var{expr}, 1)} is not the same as @code{first(@var{expr})}.
-
-@c ===beg===
-@c firstn ([w, x, y, z], 1);
-@c first ([w, x, y, z]);
-@c ===end===
-@example
-@group
-(%i1) firstn ([w, x, y, z], 1);
-(%o1)                          [w]
-@end group
-@group
-(%i2) first ([w, x, y, z]);
-(%o2)                           w
-@end group
-@end example
-
-@opencatbox
-@category{Lists} @category{Expressions}
-@closecatbox
-@end deffn
-
-@c -----------------------------------------------------------------------------
 @anchor{fourth}
 @deffn {Function} fourth (@var{expr})
 
@@ -1200,82 +1039,6 @@ Returns @code{true} if @var{expr} is a list else @code{false}.
 @end deffn
 
 @c -----------------------------------------------------------------------------
-@anchor{lreduce}
-@deffn {Function} lreduce @
-@fname{lreduce} (@var{F}, @var{s}) @
-@fname{lreduce} (@var{F}, @var{s}, @var{s_0})
-
-Extends the binary function @var{F} to an n-ary function by composition,
-where @var{s} is a list.
-
-@code{lreduce(@var{F}, @var{s})} returns @code{F(... F(F(s_1, s_2), s_3), ... s_n)}.
-When the optional argument @var{s_0} is present,
-the result is equivalent to @code{lreduce(@var{F}, cons(@var{s_0}, @var{s}))}.
-
-The function @var{F} is first applied to the
-@i{leftmost} list elements, thus the name "lreduce".
-
-See also @mref{rreduce}, @mref{xreduce}, and @mref{tree_reduce}.
-
-Examples:
-
-@code{lreduce} without the optional argument.
-
-@c ===beg===
-@c lreduce (f, [1, 2, 3]);
-@c lreduce (f, [1, 2, 3, 4]);
-@c ===end===
-@example
-@group
-(%i1) lreduce (f, [1, 2, 3]);
-(%o1)                     f(f(1, 2), 3)
-@end group
-@group
-(%i2) lreduce (f, [1, 2, 3, 4]);
-(%o2)                  f(f(f(1, 2), 3), 4)
-@end group
-@end example
-
-@code{lreduce} with the optional argument.
-
-@c ===beg===
-@c lreduce (f, [1, 2, 3], 4);
-@c ===end===
-@example
-@group
-(%i1) lreduce (f, [1, 2, 3], 4);
-(%o1)                  f(f(f(4, 1), 2), 3)
-@end group
-@end example
-
-@code{lreduce} applied to built-in binary operators.
-@code{/} is the division operator.
-
-@c ===beg===
-@c lreduce ("^", args ({a, b, c, d}));
-@c lreduce ("/", args ({a, b, c, d}));
-@c ===end===
-@example
-@group
-(%i1) lreduce ("^", args (@{a, b, c, d@}));
-                               b c d
-(%o1)                       ((a ) )
-@end group
-@group
-(%i2) lreduce ("/", args (@{a, b, c, d@}));
-                                a
-(%o2)                         -----
-                              b c d
-@end group
-@end example
-
-@opencatbox
-@category{Lists}
-@closecatbox
-
-@end deffn
-
-@c -----------------------------------------------------------------------------
 @anchor{makelist}
 @deffn  {Function} makelist @
 @fname{makelist} () @
@@ -1436,7 +1199,7 @@ See @mref{first} for more details.
 @anchor{pop}
 @deffn {Function} pop (@var{list})
 
-@code{pop} removes and returns the first element from the list @var{list}. The argument
+@code{pop} removes and returns the first element from the list @var{list}. The second argument 
 @var{list} must be a mapatom that is bound to a nonempty list. If the argument @var{list} is 
 not bound to a nonempty list, Maxima signals an error. For examples, see @mrefdot{push}
 
@@ -1573,84 +1336,6 @@ e.g.  @code{reverse(a=b);} gives @code{b=a}.
 @opencatbox
 @category{Lists} @category{Expressions}
 @closecatbox
-@end deffn
-
-@c -----------------------------------------------------------------------------
-@anchor{rreduce}
-@deffn {Function} rreduce @
-@fname{rreduce} (@var{F}, @var{s}) @
-@fname{rreduce} (@var{F}, @var{s}, @var{s_@{n + 1@}})
-
-Extends the binary function @var{F} to an n-ary function by composition,
-where @var{s} is a list.
-
-@code{rreduce(@var{F}, @var{s})} returns @code{F(s_1, ... F(s_@{n - 2@}, F(s_@{n - 1@}, s_n)))}.
-When the optional argument @var{s_@{n + 1@}} is present,
-the result is equivalent to @code{rreduce(@var{F}, endcons(@var{s_@{n + 1@}}, @var{s}))}.
-
-The function @var{F} is first applied to the
-@i{rightmost} list elements, thus the name "rreduce".
-
-See also @mref{lreduce}, @mref{tree_reduce}, and @mref{xreduce}.
-
-Examples:
-
-@code{rreduce} without the optional argument.
-
-@c ===beg===
-@c rreduce (f, [1, 2, 3]);
-@c rreduce (f, [1, 2, 3, 4]);
-@c ===end===
-@example
-@group
-(%i1) rreduce (f, [1, 2, 3]);
-(%o1)                     f(1, f(2, 3))
-@end group
-@group
-(%i2) rreduce (f, [1, 2, 3, 4]);
-(%o2)                  f(1, f(2, f(3, 4)))
-@end group
-@end example
-
-@code{rreduce} with the optional argument.
-
-@c ===beg===
-@c rreduce (f, [1, 2, 3], 4);
-@c ===end===
-@example
-@group
-(%i1) rreduce (f, [1, 2, 3], 4);
-(%o1)                  f(1, f(2, f(3, 4)))
-@end group
-@end example
-
-@code{rreduce} applied to built-in binary operators.
-@code{/} is the division operator.
-
-@c ===beg===
-@c rreduce ("^", args ({a, b, c, d}));
-@c rreduce ("/", args ({a, b, c, d}));
-@c ===end===
-@example
-@group
-(%i1) rreduce ("^", args (@{a, b, c, d@}));
-                                 d
-                                c
-                               b
-(%o1)                         a
-@end group
-@group
-(%i2) rreduce ("/", args (@{a, b, c, d@}));
-                               a c
-(%o2)                          ---
-                               b d
-@end group
-@end example
-
-@opencatbox
-@category{Lists}
-@closecatbox
-
 @end deffn
 
 @c -----------------------------------------------------------------------------
@@ -2002,88 +1687,6 @@ Examples:
 @end deffn
 
 @c -----------------------------------------------------------------------------
-@anchor{tenth}
-@deffn {Function} tenth (@var{expr})
-
-Returns the 10'th item of expression or list @var{expr}.
-See @mref{first} for more details.
-
-@opencatbox
-@category{Lists} @category{Expressions}
-@closecatbox
-@end deffn
-
-@c -----------------------------------------------------------------------------
-@anchor{third}
-@deffn {Function} third (@var{expr})
-
-Returns the 3'rd item of expression or list @var{expr}.
-See @mref{first} for more details.
-
-@opencatbox
-@category{Lists} @category{Expressions}
-@closecatbox
-@end deffn
-
-@c -----------------------------------------------------------------------------
-@c TREE_REDUCE ACCEPTS A SET OR LIST AS AN ARGUMENT, BUT RREDUCE AND LREDUCE WANT ONLY LISTS; STRANGE
-@anchor{tree_reduce}
-@deffn {Function} tree_reduce @
-@fname{tree_reduce} (@var{F}, @var{s}) @
-@fname{tree_reduce} (@var{F}, @var{s}, @var{s_0})
-
-Extends the binary function @var{F} to an n-ary function by composition,
-where @var{s} is a set or list.
-
-@code{tree_reduce} is equivalent to the following:
-Apply @var{F} to successive pairs of elements
-to form a new list @code{[@var{F}(@var{s_1}, @var{s_2}), @var{F}(@var{s_3}, @var{s_4}), ...]},
-carrying the final element unchanged if there are an odd number of elements.
-Then repeat until the list is reduced to a single element, which is the return value.
-
-When the optional argument @var{s_0} is present,
-the result is equivalent @code{tree_reduce(@var{F}, cons(@var{s_0}, @var{s}))}.
-
-For addition of floating point numbers,
-@code{tree_reduce} may return a sum that has a smaller rounding error
-than either @code{rreduce} or @code{lreduce}.
-
-The elements of @var{s} and the partial results may be arranged in a minimum-depth binary tree,
-thus the name "tree_reduce".
-
-Examples:
-
-@code{tree_reduce} applied to a list with an even number of elements.
-
-@c ===beg===
-@c tree_reduce (f, [a, b, c, d]);
-@c ===end===
-@example
-@group
-(%i1) tree_reduce (f, [a, b, c, d]);
-(%o1)                  f(f(a, b), f(c, d))
-@end group
-@end example
-
-@code{tree_reduce} applied to a list with an odd number of elements.
-
-@c ===beg===
-@c tree_reduce (f, [a, b, c, d, e]);
-@c ===end===
-@example
-@group
-(%i1) tree_reduce (f, [a, b, c, d, e]);
-(%o1)               f(f(f(a, b), f(c, d)), e)
-@end group
-@end example
-
-@opencatbox
-@category{Sets} @category{Lists}
-@closecatbox
-
-@end deffn
-
-@c -----------------------------------------------------------------------------
 @anchor{unique}
 @deffn {Function} unique (@var{L})
 
@@ -2109,84 +1712,27 @@ Example:
 @end deffn
 
 @c -----------------------------------------------------------------------------
-@c XREDUCE ACCEPTS A SET OR LIST AS AN ARGUMENT, BUT RREDUCE AND LREDUCE WANT ONLY LISTS; STRANGE
-@anchor{xreduce}
-@deffn {Function} xreduce @
-@fname{xreduce} (@var{F}, @var{s}) @
-@fname{xreduce} (@var{F}, @var{s}, @var{s_0})
+@anchor{tenth}
+@deffn {Function} tenth (@var{expr})
 
-Extends the function @var{F} to an n-ary function by composition,
-or, if @var{F} is already n-ary, applies @var{F} to @var{s}.
-When @var{F} is not n-ary, @code{xreduce} is the same as @code{lreduce}.
-The argument @var{s} is a list.
-
-Functions known to be n-ary include
-addition @code{+}, multiplication @code{*}, @code{and}, @code{or}, @code{max},
-@code{min}, and @code{append}.
-Functions may also be declared n-ary by @code{declare(@var{F}, nary)}.
-For these functions,
-@code{xreduce} is expected to be faster than either @code{rreduce} or @code{lreduce}.
-
-When the optional argument @var{s_0} is present,
-the result is equivalent to @code{xreduce(@var{s}, cons(@var{s_0}, @var{s}))}.
-
-@c NOT SURE WHAT IS THE RELEVANCE OF THE FOLLOWING COMMENT
-@c MAXIMA IS NEVER SO CAREFUL ABOUT FLOATING POINT ASSOCIATIVITY SO FAR AS I KNOW
-Floating point addition is not exactly associative; be that as it may,
-@code{xreduce} applies Maxima's n-ary addition when @var{s} contains floating point numbers.
-
-Examples:
-
-@code{xreduce} applied to a function known to be n-ary.
-@code{F} is called once, with all arguments.
-
-@c ===beg===
-@c declare (F, nary);
-@c F ([L]) := L;
-@c xreduce (F, [a, b, c, d, e]);
-@c ===end===
-@example
-@group
-(%i1) declare (F, nary);
-(%o1)                         done
-@end group
-@group
-(%i2) F ([L]) := L;
-(%o2)                      F([L]) := L
-@end group
-@group
-(%i3) xreduce (F, [a, b, c, d, e]);
-(%o3)                    [a, b, c, d, e]
-@end group
-@end example
-
-@code{xreduce} applied to a function not known to be n-ary.
-@code{G} is called several times, with two arguments each time.
-
-@c ===beg===
-@c G ([L]) := L;
-@c xreduce (G, [a, b, c, d, e]);
-@c lreduce (G, [a, b, c, d, e]);
-@c ===end===
-@example
-@group
-(%i1) G ([L]) := L;
-(%o1)                      G([L]) := L
-@end group
-@group
-(%i2) xreduce (G, [a, b, c, d, e]);
-(%o2)                 [[[[a, b], c], d], e]
-@end group
-@group
-(%i3) lreduce (G, [a, b, c, d, e]);
-(%o3)                 [[[[a, b], c], d], e]
-@end group
-@end example
+Returns the 10'th item of expression or list @var{expr}.
+See @mref{first} for more details.
 
 @opencatbox
-@category{Sets} @category{Lists}
+@category{Lists} @category{Expressions}
 @closecatbox
+@end deffn
 
+@c -----------------------------------------------------------------------------
+@anchor{third}
+@deffn {Function} third (@var{expr})
+
+Returns the 3'rd item of expression or list @var{expr}.
+See @mref{first} for more details.
+
+@opencatbox
+@category{Lists} @category{Expressions}
+@closecatbox
 @end deffn
 
 @c h-----------------------------------------------------------------------------
