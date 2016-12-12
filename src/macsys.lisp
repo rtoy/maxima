@@ -168,12 +168,11 @@ DESTINATION is an actual stream (rather than nil for a string)."
 
 (defun continue (&optional (input-stream *standard-input*)
 		 batch-or-demo-flag)
-  (declare (special *socket-connection* *maxima-run-string*))
-  (if *maxima-run-string* (setq batch-or-demo-flag :batch))
+  (declare (special *socket-connection*))
   (if (eql batch-or-demo-flag :demo)
       (format t
         (intl:gettext
-          "~%At the '~A' prompt, type ';' and <enter> to proceed with the demonstration.~&To abort the demonstration, type 'end;' or 'eof;' and then <enter>.~%")
+          "~%At the '~A' prompt, type ';' and <enter> to get next demonstration.~&")
         (print-invert-case (stripdollar $prompt))))
   (catch 'abort-demo
     (do ((r)
@@ -189,7 +188,6 @@ DESTINATION is an actual stream (rather than nil for a string)."
 	 (c-tag)
 	 (d-tag))
 	(nil)
-      (declare (ignorable area-before area-after))
       (catch 'return-from-debugger
 	(when (or (not (checklabel $inchar))
 		  (not (checklabel $outchar)))
@@ -226,10 +224,6 @@ DESTINATION is an actual stream (rather than nil for a string)."
 			  (t (go top)))))
 	     (cond ((and (consp r) (keywordp (car r)))
 		    (break-call (car r) (cdr r) 'break-command)
-		    #+(or sbcl cmu)
-		    (if (and (not batch-or-demo-flag)
-			     (not (eq input-stream *standard-input*)))
-			(setq input-stream *standard-input*))
 		    (go top)))))
 	(format t "~a" *general-display-prefix*)
 	(if (eq r eof) (return '$done))
@@ -242,10 +236,6 @@ DESTINATION is an actual stream (rather than nil for a string)."
 	      etime-before (get-internal-real-time))
 	(setq area-before (used-area))
 	(setq $% (toplevel-macsyma-eval $__))
-	#+(or sbcl cmu)
-	(if (and (not batch-or-demo-flag)
-		 (not (eq input-stream *standard-input*)))
-	    (setq input-stream *standard-input*))
 	(setq etime-after (get-internal-real-time)
 	      time-after (get-internal-run-time))
 	(setq area-after (used-area))
@@ -279,8 +269,7 @@ DESTINATION is an actual stream (rather than nil for a string)."
 		(other (- (cadr area-after) (cadr area-before)))
 		(gctime (- (caddr area-after) (caddr area-before))))
 	    (if (= 0 gctime) nil (format t (intl:gettext " including GC time ~s s,") (* 0.001 gctime)))
-	    (format t (intl:gettext " using ~s cons-cells and ~s other bytes.~%") conses other))
-	  (force-output))
+	    (format t (intl:gettext " using ~s cons-cells and ~s other bytes.~%") conses other)))
 	(unless $nolabels
           (putprop '$% (cons time-used 0) 'time)
 	  (putprop d-tag (cons time-used  0) 'time))
@@ -292,8 +281,7 @@ DESTINATION is an actual stream (rather than nil for a string)."
 	  (let (quitting)
 	    (loop
 	      ;;those are common lisp characters you're reading here
-	      (case (read-char #+(or sbcl cmu) *standard-input*
-			       #-(or sbcl cmu) *terminal-io*)
+	      (case (read-char *terminal-io*)
                 ((#\page)
                  (fresh-line)
                  (princ (break-prompt))
@@ -312,17 +300,12 @@ DESTINATION is an actual stream (rather than nil for a string)."
 	     (do ((char)) (())
 	       (setq char (read-char input-stream nil nil))
 	       (when (null char)
-		 (when *maxima-run-string*
-		   (setq batch-or-demo-flag nil
-			 *maxima-run-string* nil
-			 input-stream *standard-input*)
-		   (throw 'return-from-debugger t))
 		 (throw 'macsyma-quit nil))
 	       (unless (member char '(#\space #\newline #\return #\tab) :test #'equal)
 		 (unread-char char input-stream)
 		 (return nil))))))))
 
-(defmfun $break (&rest arg-list)
+(defun $break (&rest arg-list)
   (prog1 (apply #'$print arg-list)
     (mbreak-loop)))
 
@@ -353,15 +336,14 @@ DESTINATION is an actual stream (rather than nil for a string)."
          (format-prompt t ""))
 	((atom msg)
          (format-prompt t "~A" msg)
-	 (mterpri))
+	 (terpri))
 	((eq flag t)
          (format-prompt t "~{~A~}" (cdr msg))
 	 (mterpri))
 	(t
          (format-prompt t "~M" msg)
 	 (mterpri)))
-  (let ((res (mread-noprompt #+(or sbcl cmu) *standard-input*
-                             #-(or sbcl cmu) *query-io* nil)))
+  (let ((res (mread-noprompt *query-io* nil)))
     (princ *general-display-prefix*)
     res))
 
@@ -375,8 +357,7 @@ DESTINATION is an actual stream (rather than nil for a string)."
 				(with-output-to-string (*standard-output*) (apply #'$print l)))
 	     "")))
     (setf *mread-prompt* (format-prompt nil "~A" *mread-prompt*))
-    (third (mread #+(or sbcl cmu) *standard-input*
-                  #-(or sbcl cmu) *query-io*))))
+    (third (mread *query-io*))))
 
 ;; FUNCTION BATCH APPARENTLY NEVER CALLED. OMIT FROM GETTEXT SWEEP AND DELETE IT EVENTUALLY
 (defun batch (filename &optional demo-p
@@ -401,7 +382,7 @@ DESTINATION is an actual stream (rather than nil for a string)."
   (continue (make-echo-stream fileobj *standard-output*)
 	    (if demo-p ':demo ':batch)))
 
-(defmfun $demo (&rest arg-list)
+(defun $demo (&rest arg-list)
   (let ((tem ($file_search (car arg-list) $file_search_demo)))
     (or tem (merror (intl:gettext "demo: could not find ~M in ~M.")
 		    (car arg-list) '$file_search_demo))
@@ -491,8 +472,6 @@ DESTINATION is an actual stream (rather than nil for a string)."
 
 (defvar *maxima-quiet* nil)
 
-(defvar *maxima-run-string* nil)
-
 (defun macsyma-top-level (&optional (input-stream *standard-input*) batch-flag)
   (let ((*package* (find-package :maxima)))
     (if *maxima-started*
@@ -534,19 +513,17 @@ DESTINATION is an actual stream (rather than nil for a string)."
 (defun throw-macsyma-top ()
   (throw 'macsyma-quit t))
 
-#-(or sbcl cmu)
 (defmfun $writefile (x)
   (let ((msg (dribble (maxima-string x))))
     (format t "~&~A~&" msg)
     '$done))
 
 (defvar $appendfile nil )
-(defvar *appendfile-data* #+(or sbcl cmu) nil)
+(defvar *appendfile-data*)
 
-#-(or sbcl cmu)
 (defmfun $appendfile (name)
   (if (and (symbolp name)
-	   (char= (char (symbol-name name) 0) #\$))
+	   (member (char (symbol-name name) 0) '(#\$) :test #'char=))
       (setq name (maxima-string name)))
   (if $appendfile (merror (intl:gettext "appendfile: already in appendfile, you must call closefile first.")))
   (let ((stream  (open name :direction :output
@@ -560,11 +537,10 @@ DESTINATION is an actual stream (rather than nil for a string)."
 	  *terminal-io* $appendfile)
     (multiple-value-bind (sec min hour day month year)
 	(get-decoded-time)
-      (format t (intl:gettext "~&/* Starts dribbling to ~A (~d/~d/~d, ~2,'0d:~2,'0d:~2,'0d).*/~&")
+      (format t (intl:gettext "~&/* Starts dribbling to ~A (~d/~d/~d, ~d:~d:~d).*/~&")
 	      name year month day hour min sec))
     '$done))
 
-#-(or sbcl cmu)
 (defmfun $closefile ()
   (cond ($appendfile
 	 (cond ((eq $appendfile *terminal-io*)
@@ -577,41 +553,6 @@ DESTINATION is an actual stream (rather than nil for a string)."
 	 (setq *appendfile-data* nil $appendfile nil))
 	(t (let ((msg (dribble)))
              (format t "~&~A~&" msg))))
-  '$done)
-
-#+(or sbcl cmu)
-(defun start-dribble (name)
-  (let ((msg (dribble (maxima-string name))))
-    (format t "~&~A~&" msg)
-    (setq *appendfile-data* (cons name *appendfile-data*))
-    (multiple-value-bind (sec min hour day month year)
-	(get-decoded-time)
-      (format t (intl:gettext "~&/* Starts dribbling to ~A (~d/~d/~d, ~2,'0d:~2,'0d:~2,'0d).*/~&")
-	      name year month day hour min sec))
-    '$done))
-
-#+(or sbcl cmu)
-(defmfun $writefile (name)
-  (if (member name *appendfile-data* :test #'string=)
-      (merror (intl:gettext "writefile: already in writefile, you must call closefile first.")))
-  (start-dribble name))
-
-#+(or sbcl cmu)
-(defmfun $appendfile (name)
-  (if (member name *appendfile-data* :test #'string=)
-      (merror (intl:gettext "appendfile: already in appendfile, you must call closefile first.")))
-  (start-dribble name))
-
-#+(or sbcl cmu)
-(defmfun $closefile ()
-  (cond (*appendfile-data*
-	 (let ((msg (dribble)))
-	   (format t "~&~A~&" msg))
-	 (multiple-value-bind (sec min hour day month year)
-	     (get-decoded-time)
-	   (format t (intl:gettext "~&/* Quits dribbling to ~A (~d/~d/~d, ~2,'0d:~2,'0d:~2,'0d).*/~&")
-		   (car *appendfile-data*) year month day hour min sec))
-	 (setq *appendfile-data* (cdr *appendfile-data*))))
   '$done)
 
 (defmfun $ed (x)
@@ -649,7 +590,7 @@ DESTINATION is an actual stream (rather than nil for a string)."
                  (setq result (meval* v)))
                result)))))))
 
-(defmfun $sconcat (&rest x)
+(defun $sconcat (&rest x)
   (let ((ans "") )
     (dolist (v x)
       (setq ans (concatenate 'string ans
@@ -659,14 +600,13 @@ DESTINATION is an actual stream (rather than nil for a string)."
 				    (coerce (mstring v) 'string))))))
     ans))
 
-(defmfun $system (&rest args)
+(defun $system (&rest args)
   ;; If XMaxima is running, direct output from command into *SOCKET-CONNECTION*.
   ;; From what I can tell, GCL, ECL, and Clisp cannot redirect the output into an existing stream. Oh well.
   (let ((s (and (boundp '*socket-connection*) *socket-connection*))
 	shell shell-opt)
     #+(or gcl ecl lispworks)
     (declare (ignore s))
-    (declare (ignorable shell shell-opt))
 
     (cond ((string= *autoconf-windows* "true")
 	   (setf shell "cmd") (setf shell-opt "/c"))
@@ -692,32 +632,15 @@ DESTINATION is an actual stream (rather than nil for a string)."
     #+abcl (extensions::run-shell-command (apply '$sconcat args) :output (or s *standard-output*))
     #+lispworks (system:run-shell-command (apply '$sconcat args) :wait t)))
 
-(defmfun $room (&optional (arg nil arg-p))
+(defun $room (&optional (arg nil arg-p))
   (if (and arg-p (member arg '(t nil) :test #'eq))
       (room arg)
       (room)))
 
 (defun maxima-lisp-debugger (condition me-or-my-encapsulation)
   (declare (ignore me-or-my-encapsulation))
-  ;; If outputting an error message creates an error this has the potential to trigger
-  ;; another error message - which causes an endless loop.
-  ;;
-  ;; If maxima is connected to a frontend (for example wxMaxima) using a local network
-  ;; socket and the frontend suddently crashes the network connection drops -which
-  ;; has the potential to cause this endless loop to happen.
-  ;;
-  ;; most lisps (at least gcl, sbcl and clisp) are intelligent enough to call (bye)
-  ;; if the socket connected to stdin, stdout and stderr drops.
-  ;; ECL 16.3.1 ran into an endless loop, though => if maxima runs into an error 
-  ;; and cannot output an error message something is wrong enough to justify maxima
-  ;; to quit.
-  (handler-case
-    (progn
-      (format t (intl:gettext "~&Maxima encountered a Lisp error:~%~% ~A") condition)
-      (format t (intl:gettext "~&~%Automatically continuing.~%To enable the Lisp debugger set *debugger-hook* to nil.~%"))
-      (force-output)
-    )
-    (error () (ignore-errors (bye))))
+  (format t (intl:gettext "~&Maxima encountered a Lisp error:~%~% ~A") condition)
+  (format t (intl:gettext "~&~%Automatically continuing.~%To enable the Lisp debugger set *debugger-hook* to nil.~%"))
   (throw 'return-from-debugger t))
 
 (let ((t0-real 0) (t0-run 0)
@@ -727,12 +650,12 @@ DESTINATION is an actual stream (rather than nil for a string)."
     (setq t0-real (get-internal-real-time))
     (setq t0-run (get-internal-run-time)))
 
-  (defmfun $absolute_real_time () (get-universal-time))
+  (defun $absolute_real_time () (get-universal-time))
 
-  (defmfun $elapsed_real_time ()
+  (defun $elapsed_real_time ()
     (let ((elapsed-real-time (- (get-internal-real-time) t0-real)))
       (/ elapsed-real-time float-units)))
 
-  (defmfun $elapsed_run_time ()
+  (defun $elapsed_run_time ()
     (let ((elapsed-run-time (- (get-internal-run-time) t0-run)))
       (/ elapsed-run-time float-units))))
