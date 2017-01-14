@@ -38,7 +38,7 @@ variable of integration.
 
 Examples:
 
-@c ===beg===
+@c FOLLOWING EXAMPLES GENERATED FROM THESE INPUTS
 @c load ("antid")$
 @c expr: exp (z(x)) * diff (z(x), x) * y(x);
 @c a1: antid (expr, x, z(x));
@@ -46,7 +46,9 @@ Examples:
 @c a2 - (first (a1) + 'integrate (second (a1), x));
 @c antid (expr, x, y(x));
 @c antidiff (expr, x, y(x));
-@c ===end===
+@c THERE IS A DEMO FILE share/integration/antid.dem, EXECUTED BY demo('antid)
+@c BUT I THINK THE FOLLOWING ILLUSTRATES THE BASIC FUNCTIONALITY MORE CLEARLY
+@c MAYBE MERGE IN THE DEMO PROBLEMS LATER
 @example
 (%i1) load ("antid")$
 (%i2) expr: exp (z(x)) * diff (z(x), x) * y(x);
@@ -109,10 +111,7 @@ variable of integration.
 
 Examples:
 
-@c THERE IS A DEMO FILE share/integration/antid.dem, EXECUTED BY demo('antid)
-@c BUT I THINK THE FOLLOWING ILLUSTRATES THE BASIC FUNCTIONALITY MORE CLEARLY
-@c MAYBE MERGE IN THE DEMO PROBLEMS LATER
-@c ===beg===
+@c FOLLOWING EXAMPLES GENERATED FROM THESE INPUTS
 @c load ("antid")$
 @c expr: exp (z(x)) * diff (z(x), x) * y(x);
 @c a1: antid (expr, x, z(x));
@@ -120,7 +119,9 @@ Examples:
 @c a2 - (first (a1) + 'integrate (second (a1), x));
 @c antid (expr, x, y(x));
 @c antidiff (expr, x, y(x));
-@c ===end===
+@c THERE IS A DEMO FILE share/integration/antid.dem, EXECUTED BY demo('antid)
+@c BUT I THINK THE FOLLOWING ILLUSTRATES THE BASIC FUNCTIONALITY MORE CLEARLY
+@c MAYBE MERGE IN THE DEMO PROBLEMS LATER
 @example
 (%i1) load ("antid")$
 (%i2) expr: exp (z(x)) * diff (z(x), x) * y(x);
@@ -193,14 +194,14 @@ Examples:
 @end group
 @group
 (%i2) atvalue ('diff (f(x,y), x), x = 0, 1 + y);
-(%o2)                        @@2 + 1
+(%o2)                        @2 + 1
 @end group
 (%i3) printprops (all, atvalue);
                                 !
                   d             !
-                 --- (f(@@1, @@2))!       = @@2 + 1
-                 d@@1            !
-                                !@@1 = 0
+                 --- (f(@1, @2))!       = @2 + 1
+                 d@1            !
+                                !@1 = 0
 
                                      2
                           f(0, 1) = a
@@ -221,48 +222,6 @@ Examples:
                                             !x = 0
 @end group
 @end example
-
-Note that in the last line @code{y} is treated differently to @code{x}
-as @code{y} isn't used as a differentiation variable.
-
-The difference between @mrefcomma{subst} @mref{at} and @mref{ev} can be
-seen in the following example:
-
-@c ===beg===
-@c e1:I(t)=C*diff(U(t),t)$
-@c e2:U(t)=L*diff(I(t),t)$
-@c at(e1,e2);
-@c subst(e2,e1);
-@c ev(e1,e2,diff);
-@c ===end===
-@example
-(%i1) e1:I(t)=C*diff(U(t),t)$
-(%i2) e2:U(t)=L*diff(I(t),t)$
-@group
-(%i3) at(e1,e2);
-                               !
-                      d        !
-(%o3)       I(t) = C (-- (U(t))!                    )
-                      dt       !          d
-                               !U(t) = L (-- (I(t)))
-                                          dt
-@end group
-@group
-(%i4) subst(e2,e1);
-                            d      d
-(%o4)             I(t) = C (-- (L (-- (I(t)))))
-                            dt     dt
-@end group
-@group
-(%i5) ev(e1,e2,diff);
-                                  2
-                                 d
-(%o5)                I(t) = C L (--- (I(t)))
-                                   2
-                                 dt
-@end group
-@end example
-
 
 @opencatbox
 @category{Evaluation} @category{Differential equations}
@@ -320,27 +279,20 @@ variables @var{x_1}, @var{x_2}, @dots{} when atvalues are displayed.
 @code{atvalue} evaluates its arguments.
 @code{atvalue} returns @var{c}, the atvalue.
 
-See also @mrefdot{at}
-
 Examples:
 
-@c ===beg===
+@c FOLLOWING ADAPTED FROM example (atvalue)
 @c atvalue (f(x,y), [x = 0, y = 1], a^2);
 @c atvalue ('diff (f(x,y), x), x = 0, 1 + y);
 @c printprops (all, atvalue);
 @c diff (4*f(x,y)^2 - u(x,y)^2, x);
 @c at (%, [x = 0, y = 1]);
-@c ===end===
 @example
-@group
 (%i1) atvalue (f(x,y), [x = 0, y = 1], a^2);
                                 2
 (%o1)                          a
-@end group
-@group
 (%i2) atvalue ('diff (f(x,y), x), x = 0, 1 + y);
 (%o2)                        @@2 + 1
-@end group
 (%i3) printprops (all, atvalue);
                                 !
                   d             !
@@ -352,20 +304,16 @@ Examples:
                           f(0, 1) = a
 
 (%o3)                         done
-@group
 (%i4) diff (4*f(x,y)^2 - u(x,y)^2, x);
                   d                          d
 (%o4)  8 f(x, y) (-- (f(x, y))) - 2 u(x, y) (-- (u(x, y)))
                   dx                         dx
-@end group
-@group
 (%i5) at (%, [x = 0, y = 1]);
-                                            !
-                 2              d           !
-(%o5)        16 a  - 2 u(0, 1) (-- (u(x, 1))!     )
-                                dx          !
-                                            !x = 0
-@end group
+                                         !
+              2              d           !
+(%o5)     16 a  - 2 u(0, 1) (-- (u(x, y))!            )
+                             dx          !
+                                         !x = 0, y = 1
 @end example
 
 @opencatbox
@@ -388,7 +336,7 @@ The @code{cartan} package
 implements the functions @code{ext_diff} and @code{lie_diff},
 along with the operators @code{~} (wedge product) and @code{|} (contraction
 of a form with a vector.)
-Type @code{demo ("tensor")} to see a brief
+Type @code{demo (tensor)} to see a brief
 description of these commands along with examples.
 
 @code{cartan} was implemented by F.B. Estabrook and H.D. Wahlquist.
@@ -410,11 +358,10 @@ In this case, the return value is the so-called "total differential".
 
 Examples:
 
-@c ===beg===
+@c GENERATED FROM THE FOLLOWING
 @c diff (log (x));
 @c diff (exp (x*y));
 @c diff (x*y*z);
-@c ===end===
 @example
 (%i1) diff (log (x));
                              del(x)
@@ -442,10 +389,6 @@ Currently only @code{laplace} knows about the @code{delta} function.
 
 Example:
 
-@c ===beg===
-@c laplace (delta (t - a) * sin(b*t), t, s);
-@c input:p;
-@c ===end===
 @example
 (%i1) laplace (delta (t - a) * sin(b*t), t, s);
 Is  a  positive, negative, or zero?
@@ -566,13 +509,12 @@ For example, @code{integrate} does not recognize the dependence of @code{f} on
 
 @code{depends(@var{f}, [@var{x_1}, @dots{}, @var{x_n}])} is equivalent to @code{dependencies(@var{f}(@var{x_1}, @dots{}, @var{x_n}))}.
 
-@c ===beg===
+@c GENERATED BY THE FOLLOWING
 @c depends ([f, g], x);
 @c depends ([r, s], [u, v, w]);
 @c depends (u, t);
 @c dependencies;
 @c diff (r.s, u);
-@c ===end===
 @example
 (%i1) depends ([f, g], x);
 (%o1)                     [f(x), g(x)]
@@ -588,9 +530,8 @@ For example, @code{integrate} does not recognize the dependence of @code{f} on
                          du           du
 @end example
 
-@c ===beg===
+@c GENERATED BY THE FOLLOWING
 @c diff (r.s, t);
-@c ===end===
 @example
 (%i6) diff (r.s, t);
                       dr du           ds du
@@ -598,10 +539,9 @@ For example, @code{integrate} does not recognize the dependence of @code{f} on
                       du dt           du dt
 @end example
 
-@c ===beg===
+@c GENERATED BY THE FOLLOWING
 @c remove (r, dependency);
 @c diff (r.s, t);
-@c ===end===
 @example
 (%i7) remove (r, dependency);
 (%o7)                         done
@@ -643,10 +583,9 @@ of the dependent variable @var{y} with respect to the independent variable
 
 Example:
 
-@c ===beg===
+@c GENERATED FROM THE FOLLOWING
 @c 'diff (y, x, 2) + 'diff (y, z, 3) + 'diff (y, x) * x^2;
 @c derivdegree (%, y, x);
-@c ===end===
 @example
 (%i1) 'diff (y, x, 2) + 'diff (y, z, 3) + 'diff (y, x) * x^2;
                          3     2
@@ -729,12 +668,11 @@ Otherwise, derivatives are displayed in the Leibniz notation, @code{dy/dx}.
 
 Examples:
 
-@c ===beg===
+@c GENERATED FROM THE FOLLOWING
 @c diff (exp (f(x)), x, 2);
 @c derivabbrev: true$
 @c 'integrate (f(x, y), y, g(x), h(x));
 @c diff (%, x);
-@c ===end===
 @example
 (%i1) diff (exp (f(x)), x, 2);
                      2
@@ -860,7 +798,7 @@ In this context, @mref{diff} acts as an @mref{evfun}.
 
 Examples:
 
-@c ===beg===
+@c GENERATED FROM THE FOLLOWING
 @c load ("vect")$
 @c grad (x^2 + y^2 + z^2);
 @c express (%);
@@ -876,7 +814,6 @@ Examples:
 @c ev (%, diff);
 @c [a, b, c] ~ [x, y, z];
 @c express (%);
-@c ===end===
 @example
 (%i1) load ("vect")$
 (%i2) grad (x^2 + y^2 + z^2);
@@ -1061,18 +998,11 @@ See also @mrefcomma{ilt}, the inverse Laplace transform.
 
 Examples:
 
-@c ===beg===
+@c GENERATED FROM THE FOLLOWING:
 @c laplace (exp (2*t + a) * sin(t) * t, t, s);
 @c laplace ('diff (f (x), x), x, s);
 @c diff (diff (delta (t), t), t);
 @c laplace (%, t, s);
-@c assume(a>0)$
-@c laplace(gamma_incomplete(a,t),t,s),gamma_expand:true;
-@c factor(laplace(gamma_incomplete(1/2,t),t,s));
-@c assume(exp(%pi*s)>1)$
-@c laplace(sum((-1)^n*unit_step(t-n*%pi)*sin(t),n,0,inf),t,s),
-@c    simpsum;
-@c ===end===
 @example
 (%i1) laplace (exp (2*t + a) * sin(t) * t, t, s);
                             a
