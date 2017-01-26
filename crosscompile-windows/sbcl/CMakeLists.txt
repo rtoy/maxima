@@ -9,13 +9,15 @@
 # If no further patches are needed, you should get a
 # updated setup-file automatically.
 
+# current program versions
+
+set(SBCLVERSION "1.3.12")
+
 if(BUILD_64BIT)
-    set(SBCLVERSION "1.4.14")
-    set(SBCL_MD5           "c1c002264415d8f1f6f51412c88f7293")
+    set(SBCL_MD5           "93996a0d4537c624286f1428af98b9e3")
     set(SBCL_INSTALLERNAME "sbcl-${SBCLVERSION}-x86-64-windows-binary.msi")
 else()
-    set(SBCLVERSION "1.4.14")
-    set(SBCL_MD5           "01f1927c4dea0d9a9322c28c58fadb7d")
+    set(SBCL_MD5           "918fb23e00645e56c8687df4e06c30ae")
     set(SBCL_INSTALLERNAME "sbcl-${SBCLVERSION}-x86-windows-binary.msi")
 endif()
 
@@ -38,6 +40,6 @@ ExternalProject_Add_Step(sbcl extract
   DEPENDERS patch
 )
 
-install(FILES ${CMAKE_BINARY_DIR}/sbcl/sbcl.exe ${CMAKE_BINARY_DIR}/sbcl/sbcl.core DESTINATION bin COMPONENT SBCL)
-install(DIRECTORY ${CMAKE_BINARY_DIR}/sbcl/contrib DESTINATION bin COMPONENT SBCL)
+install(FILES ${CMAKE_BINARY_DIR}/sbcl/sbcl.exe ${CMAKE_BINARY_DIR}/sbcl/sbcl.core DESTINATION bin)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/sbcl/contrib DESTINATION bin)
 

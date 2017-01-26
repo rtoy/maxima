@@ -9,16 +9,17 @@
 # If no further patches are needed, you should get a
 # updated setup-file automatically.
 
-set(GNUPLOTVERSION     5.2.5)
+# current program version
+set(GNUPLOTVERSION     5.0.5)
 
 string(REPLACE "." "" GNUPLOTVERSIONWITHOUTDOTS "${GNUPLOTVERSION}")
 
 if(BUILD_64BIT)
-    set(GNUPLOT_MD5   "727d9b4932e1c6f1d9f90dd1e8b38289")
-    set(GNUPLOT_URL   "http://sourceforge.net/projects/gnuplot/files/gnuplot/${GNUPLOTVERSION}/gp${GNUPLOTVERSIONWITHOUTDOTS}-win64-mingw.7z")
+    set(GNUPLOT_MD5   "1880813e85b7fde2d5ae82bfc275ce91")
+    set(GNUPLOT_URL   "http://sourceforge.net/projects/gnuplot/files/gnuplot/${GNUPLOTVERSION}/gp${GNUPLOTVERSIONWITHOUTDOTS}-win64-mingw.zip")
 else()
-    set(GNUPLOT_MD5   "b9b1608c4f8d9abdb36bb06e02a5cfe0")
-    set(GNUPLOT_URL   "http://sourceforge.net/projects/gnuplot/files/gnuplot/${GNUPLOTVERSION}/gp${GNUPLOTVERSIONWITHOUTDOTS}-win32-mingw.7z")
+    set(GNUPLOT_MD5   "cda1529b623a93033b449eeab130cc99")
+    set(GNUPLOT_URL   "http://sourceforge.net/projects/gnuplot/files/gnuplot/${GNUPLOTVERSION}/gp${GNUPLOTVERSIONWITHOUTDOTS}-win32-mingw.zip")
 endif()
 
 # Gnuplot (already a binary package just extract it...)
@@ -30,4 +31,4 @@ externalproject_add(gnuplot
   BUILD_COMMAND ""
   INSTALL_COMMAND ""
 )
-install(DIRECTORY ${CMAKE_BINARY_DIR}/gnuplot/gnuplot-prefix/src/gnuplot/ DESTINATION gnuplot COMPONENT Gnuplot)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/gnuplot/gnuplot-prefix/src/gnuplot/ DESTINATION gnuplot)
