@@ -881,7 +881,6 @@ algorithm "isolAlg" for the
 isolation of real roots in an archimedean real closed field
 FLAG: "DRAW_TOPOLOGY" (set to false by default) when set to true it will trigger "drawTopology" to display the topology diagram automatically. Remark: if a diagram is displayed, you need to close the pop-up window to get the result. 
 OUTPUT : a couple containing 
-FLAG: "DRAW_TOPOLOGY" (set to false by default) when set to true it will trigger "drawTopology" to display the topology diagram automatically. Remark: if a diagram is displayed, you need to close the pop-up window to get the result. 
 
 i) the number "a" of changes of 
 system of coordinates in order to obtain a 
