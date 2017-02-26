@@ -48,10 +48,13 @@
 ;; Let's remove built-in operators from list for user-defined properties.
 (setq $props (remove "{" $props :test #'equal))
 (setq $props (remove "}" $props :test #'equal))
+<<<<<<< HEAD
 
 ;; DEF-OPERATOR makes "{" map to ${, but it needs to map to $SET.
 ;; Just clobber whatever DEF-OPERATOR put into *OPR-TABLE*.
 (putopr "{" '$set)
+=======
+>>>>>>> Remove built-in symbols from the list for user-defined properties.
 
 ;; DEF-OPERATOR makes "{" map to ${, but it needs to map to $SET.
 ;; Just clobber whatever DEF-OPERATOR put into *OPR-TABLE*.
