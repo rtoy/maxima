@@ -25,11 +25,18 @@ if(USE_WXMAXIMA_GIT)
               COMMAND ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-git-prefix/src/wxmaxima-git/bootstrap
         CONFIGURE_COMMAND  ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-git-prefix/src/wxmaxima-git/configure --host=${HOST} --with-wx-config=${CMAKE_BINARY_DIR}/wxwidgets/wxwidgets-prefix/src/wxwidgets-build/wx-config --prefix=C:/maxima-${MAXIMAVERSION}
         BUILD_COMMAND $(MAKE)
+<<<<<<< HEAD
               COMMAND $(MAKE) allmo
               COMMAND $(MAKE) wxMaxima.win
        INSTALL_COMMAND ""
     )
     install(DIRECTORY ${CMAKE_BINARY_DIR}/wxmaxima-git/wxmaxima-git-prefix/src/wxmaxima-git-build/wxMaxima/ DESTINATION wxMaxima)
+=======
+              COMMAND $(MAKE) translations
+        INSTALL_COMMAND $(MAKE) install
+    )
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-git-prefix/src/wxmaxima-git-build/C:/maxima-${MAXIMAVERSION}/ DESTINATION .)
+>>>>>>> Crosscompiling: Compile the wxMaxima Git version with CMake
 else()
     externalproject_add(wxmaxima
         URL "${WXMAXIMA_URL}"
