@@ -1,4 +1,4 @@
-https://travis-ci.org/rtoy/maxima.svg?branch=master
+[![Build Status](https://travis-ci.org/rtoy/maxima.svg?branch=master)](https://travis-ci.org/rtoy/maxima)
 
 Maxima is a symbolic computation program.  It is full featured,
 doing symbolic manipulation of polynomials, matrices, rational
