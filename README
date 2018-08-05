@@ -1,3 +1,5 @@
+https://travis-ci.org/rtoy/maxima.svg?branch=master
+
 Maxima is a symbolic computation program.  It is full featured,
 doing symbolic manipulation of polynomials, matrices, rational
 functions, integration, Todd-coxeter, graphing, bigfloats.  It has a
