@@ -7,7 +7,7 @@ before_install:
 
 # Get lisp binary to use
 install:
- - curl http://ccl.clozure.com/ftp/pub/release/1.11/ccl-1.11-linuxx86.tar.gz | tar xzf -
+ - curl --location https://github.com/Clozure/ccl/releases/download/v1.11.5/ccl-1.11.5-linuxx86.tar.gz | tar xzf -
 
 # Build and run layout tests
 script:
