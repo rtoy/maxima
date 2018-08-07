@@ -3,7 +3,7 @@
 #
 # Install packages we need
 before_install:
- - sudo apt-get install -y texinfo
+ - sudo apt-get install -y texinfo lib32gcc-4.8-dev
 
 # Get lisp binary to use
 install:
