@@ -9,8 +9,8 @@ before_install:
 install:
  - curl --location https://github.com/Clozure/ccl/releases/download/v1.11.5/ccl-1.11.5-linuxx86.tar.gz | tar xzf -
  - mkdir cmucl
- - (cd cmucl; curl https://common-lisp.net/project/cmucl/downloads/snapshots/2018/03/cmucl-2018-03-x86-linux.tar.bz2 | tar xf -)
- - (cd cmucl; curl https://common-lisp.net/project/cmucl/downloads/snapshots/2018/03/cmucl-2018-03-x86-linux.extra.tar.bz2 | tar xf -)
+ - (cd cmucl; curl https://common-lisp.net/project/cmucl/downloads/snapshots/2018/03/cmucl-2018-03-x86-linux.tar.bz2 | tar xjf -)
+ - (cd cmucl; curl https://common-lisp.net/project/cmucl/downloads/snapshots/2018/03/cmucl-2018-03-x86-linux.extra.tar.bz2 | tar xjf -)
 
 # Build and run layout tests
 script:
