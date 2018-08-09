@@ -17,6 +17,6 @@ install:
 # Build and run layout tests
 script:
  - ./bootstrap
- - ./configure --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-ecl --with-ecl=$HOME/ecl/bin/lisp
+ - ./configure --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-ecl --with-ecl=$HOME/ecl/bin/ecl
  - make
  - (make check; cat tests/test-suite.log)
