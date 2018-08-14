@@ -20,4 +20,5 @@ script:
  - ./configure --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-ecl --with-ecl=$HOME/ecl/bin/ecl
  - make
  # make check takes a long time ot produce any output.  Tell travis to wait for a while.
- - travis_wait 30 (make check; cat tests/test-suite.log)
+ - travis_wait 30 make check
+ - cat tests/test-suite.log
