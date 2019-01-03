@@ -535,6 +535,54 @@
     (or (numberp p)
 	(eq (pdis (pget (car p))) '$%i))))
 
+;; (SIMPLIFY-AFTER-SUBST EXPR)
+;;
+;; Simplify EXPR after substitution of a partial solution.
+;;
+;; Focus is on constant expressions:
+;; o failure to reduce a constant expression that is equivalent
+;;   to zero causes solutions to be falsely rejected
+;; o some operations, such as the reduction of nested square roots,
+;;   requires known sign and ordering of all terms
+;; o inappropriate simplification by $RADCAN introduced errors
+;;   $radcan(sqrt(-1/(1+%i)))     => exhausts heap
+;;   $radcan(sqrt(6-3^(3/2))) > 0 => sqrt(sqrt(3)-2)*sqrt(3)*%i < 0
+;;
+;; Problems from bug reports showed that further simplification of
+;; non-constant terms, with incomplete information, could lead to
+;; missed roots or unwanted complexity.
+;;
+;; $ratsimp with algebraic:true can transform
+;;     sqrt(2)*sqrt(-1/(sqrt(3)*%i+1)) => (sqrt(3)*%i)/2+1/2
+;; but $rectform is required for
+;;     sqrt(sqrt(3)*%i-1)) => (sqrt(3)*%i)/sqrt(2)+1/sqrt(2)
+;; and $rootscontract is required for
+;;     sqrt(34)-sqrt(2)*sqrt(17) => 0
+(defun simplify-after-subst (expr)
+  "Simplify expression after substitution"
+  (let (($keepfloat t) ($algebraic t) (e expr)
+	e1 e2 tmp (growth-factor 1.2)
+	(genvar nil) (varlist nil)
+	($rootsconmode t) ($radexpand t))
+    ;; Try two approaches
+    ;; 1) ratsimp
+    ;; 2) if $constantp(e) sqrtdenest + rectform + rootscontract + ratsimp
+    ;; take smallest expression
+    (setq e1 (sratsimp e))
+    (if ($constantp e)
+      (progn
+	(setq e (sqrtdenest e))
+	;; Rectform does more than is wanted.  A function that denests and
+	;; rationalizes nested complex radicals would be better.
+	;; Limit expression growth.  The factor is based on trials.
+	(setq tmp ($rectform e))
+	(when (< (conssize tmp) (* growth-factor (conssize e)))
+	  (setq e tmp))
+	(setq e ($rootscontract e))
+	(setq e2 (sratsimp e))
+	(if (< (conssize e1) (conssize e2)) e1 e2))
+      e1)))
+
 ;; (BAKALEVEL SOLNL LHSL VAR)
 ;;
 ;;; Recursively try to find a solution to the list of polynomials in LHSL. SOLNL
@@ -710,7 +758,7 @@
 						  (pderivative p x)))))
 		(listovars p))))
 
-(defmfun mycabs (x)
+(defun mycabs (x)
   (and (complexnump x) (cabs x)))
 
 ;;; (DISTREP LOL)

@@ -184,7 +184,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $double_factorial (z)
+(defmfun $double_factorial (z)
   (simplify (list '(%double_factorial) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -336,7 +336,7 @@
 
 (defvar *debug-gamma* nil)
 
-(defun $gamma_incomplete (a z)
+(defmfun $gamma_incomplete (a z)
   (simplify (list '(%gamma_incomplete) a z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -458,11 +458,54 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defmfun $gamma_incomplete_lower (a z)
+  (simplify (list '(%gamma_incomplete_lower) a z)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defprop $gamma_incomplete_lower %gamma_incomplete_lower alias)
+(defprop $gamma_incomplete_lower %gamma_incomplete_lower verb)
+
+(defprop %gamma_incomplete_lower $gamma_incomplete_lower reversealias)
+(defprop %gamma_incomplete_lower $gamma_incomplete_lower noun)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defprop %gamma_incomplete_lower simp-gamma-incomplete-lower operators)
+
+;;; distribute over bags (aggregates)
+
+(defprop %gamma_incomplete_lower (mlist $matrix mequal) distribute_over)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; (defprop %gamma_incomplete_lower ??? grad) WHAT TO PUT HERE ??
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun simp-gamma-incomplete-lower (expr ignored simpflag)
+  (declare (ignore ignored))
+  (twoargcheck expr)
+  (let ((a (simpcheck (cadr expr) simpflag))
+        (z (simpcheck (caddr expr) simpflag)))
+    (cond
+      ((or
+         (float-numerical-eval-p a z)
+         (complex-float-numerical-eval-p a z)
+         (bigfloat-numerical-eval-p a z)
+         (complex-bigfloat-numerical-eval-p a z))
+       (take '(%gamma_incomplete_generalized) a 0 z))
+      (t
+        (gamma-incomplete-lower a z)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun simp-gamma-incomplete (expr ignored simpflag)
   (declare (ignore ignored))
   (twoargcheck expr)
   (let ((a (simpcheck (cadr expr) simpflag))
         (z (simpcheck (caddr expr) simpflag))
+        ($simpsum t)
         (ratorder))
     (cond
 
@@ -587,14 +630,14 @@
               (simplify (list '(%gamma) a))
               (power '$%e (mul -1 z))
               (let ((index (gensumindex)))
-                (dosum
+                (simpsum1
                   (div 
                     (power z index)
                     (let (($gamma_expand nil))
                       ;; Simplify gamma, but do not expand to avoid division 
                       ;; by zero.
                       (simplify (list '(%gamma) (add index 1)))))
-                  index 0 (sub a 1) t))))
+                  index 0 (sub a 1)))))
            ((member sgn '($neg $nz))
             (sub
               (mul
@@ -612,11 +655,11 @@
               (mul
                 (power '$%e (mul -1 z))
                 (let ((index (gensumindex)))
-                  (dosum
+                  (simpsum1
                     (div
                       (power z (add index a -1))
                       (simplify (list '($pochhammer) a index)))
-                    index 1 (mul -1 a) t)))))
+                    index 1 (mul -1 a))))))
            (t (eqtest (list '(%gamma_incomplete) a z) expr)))))
 
       ((and $gamma_expand (setq ratorder (max-numeric-ratio-p a 2)))
@@ -638,7 +681,7 @@
               (power '$%e (mul -1 z))
               (power z '((rat simp) 1 2))
               (let ((index (gensumindex)))
-                (dosum
+                (simpsum1
                   (mul -1                      ; we get more simple results
                     (simplify                  ; when multiplying with -1  
                       (list 
@@ -646,7 +689,7 @@
                         (sub '((rat simp) 1 2) ratorder)
                         (sub ratorder (add index 1))))
                     (power (mul -1 z) index))
-                  index 0 (sub ratorder 1) t)))))
+                  index 0 (sub ratorder 1))))))
          ((< ratorder 0)
           (setq ratorder (- ratorder))
           (sub
@@ -660,7 +703,7 @@
               (power z (sub '((rat simp) 1 2) ratorder))
               (power '$%e (mul -1 z))
               (let ((index (gensumindex)))
-                (dosum
+                (simpsum1
                   (div
                     (power z index)
                     (simplify 
@@ -668,7 +711,7 @@
                        '($pochhammer) 
                         (sub '((rat simp) 1 2) ratorder)  
                         (add index 1))))
-                  index 0 (sub ratorder 1) t)))))))
+                  index 0 (sub ratorder 1))))))))
 
       ((and $gamma_expand (mplusp a) (integerp (cadr a)))
        (let ((n (cadr a))
@@ -683,13 +726,13 @@
                 (power '$%e (mul -1 z))
                 (power z (add a n -1))
                 (let ((index (gensumindex)))
-                  (dosum
+                  (simpsum1
                     (mul
                       (simplify 
                         (list 
                          '($pochhammer) (add 1 (mul -1 a) (mul -1 n)) index))
                       (power (mul -1 z) (mul -1 index)))
-                    index 0 (add n -1) t)))))
+                    index 0 (add n -1))))))
            ((< n 0)
             (setq n (- n))
             (sub
@@ -702,11 +745,11 @@
                 (power '$%e (mul -1 z))
                 (power z (sub a n))
                 (let ((index (gensumindex)))
-                  (dosum
+                  (simpsum1
                     (div
                       (power z index)
                       (simplify (list '($pochhammer) (sub a n) (add index 1))))
-                    index 0 (sub n 1) t))))))))
+                    index 0 (sub n 1)))))))))
 
       (t (eqtest (list '(%gamma_incomplete) a z) expr)))))
 
@@ -1134,7 +1177,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $gamma_incomplete_generalized (a z1 z2)
+(defmfun $gamma_incomplete_generalized (a z1 z2)
   (simplify (list '(%gamma_incomplete_generalized) a z1 z2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1227,10 +1270,11 @@
 
 (defun simp-gamma-incomplete-generalized (expr ignored simpflag)
   (declare (ignore ignored))
-  (if (not (= (length expr) 4)) (wna-err '$gamma_incomplete_generalized))
+  (arg-count-check 3 expr)
   (let ((a  (simpcheck (cadr expr)   simpflag))
         (z1 (simpcheck (caddr expr)  simpflag))
-        (z2 (simpcheck (cadddr expr) simpflag)))
+        (z2 (simpcheck (cadddr expr) simpflag))
+        ($simpsum t))
 
     (cond
 
@@ -1304,19 +1348,19 @@
                 (mul
                   (power '$%e (mul -1 z1))
                   (let ((index (gensumindex)))
-                    (dosum
+                    (simpsum1
                       (div
                         (power z1 (add a index -1))
                         (simplify (list '($pochhammer) a index)))
-                      index 1 n t)))
+                      index 1 n)))
                 (mul -1
                   (power '$%e (mul -1 z2))
                   (let ((index (gensumindex)))
-                    (dosum
+                    (simpsum1
                       (div
                         (power z2 (add a index -1))
                         (simplify (list '($pochhammer) a index)))
-                      index 1 n t))))))
+                      index 1 n))))))
 
            ((< n 0)
             (setq n (- n))
@@ -1329,19 +1373,19 @@
               (mul -1
                 (power '$%e (mul -1 z2))
                 (let ((index (gensumindex)))
-                  (dosum
+                  (simpsum1
                     (div
                       (power z1 (add a index (- n) -1))
                       (simplify (list '($pochhammer) (sub a n) index)))
-                    index 1 n t)))
+                    index 1 n)))
               (mul
                 (power '$%e (mul -1 z2))
                 (let ((index (gensumindex)))
-                  (dosum
+                  (simpsum1
                     (div
                       (power z2 (add a index (- n) -1))
                       (simplify (list '($pochhammer) (sub a n) index)))
-                    index 1 n t))))))))
+                    index 1 n))))))))
 
       (t (eqtest (list '(%gamma_incomplete_generalized) a z1 z2) expr)))))
 
@@ -1351,7 +1395,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $gamma_incomplete_regularized (a z)
+(defmfun $gamma_incomplete_regularized (a z)
   (simplify (list '(%gamma_incomplete_regularized) a z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1434,6 +1478,7 @@
   (twoargcheck expr)
   (let ((a (simpcheck (cadr expr)  simpflag))
         (z (simpcheck (caddr expr) simpflag))
+        ($simpsum t)
         (ratorder 0))
 
     (cond
@@ -1490,12 +1535,12 @@
             (mul
               (power '$%e (mul -1 z))
               (let ((index (gensumindex)))
-                (dosum
+                (simpsum1
                   (div 
                     (power z index)
                     (let (($gamma_expand nil))
                       (simplify (list '(%gamma) (add index 1)))))
-                  index 0 (sub a 1) t))))
+                  index 0 (sub a 1)))))
            ((member sgn '($neg $nz)) 0)
            (t (eqtest (list '(%gamma_incomplete_regularized) a z) expr)))))
 
@@ -1520,13 +1565,13 @@
               (power z '((rat simp) 1 2))
               (div 1 (simplify (list '(%gamma) a)))             
               (let ((index (gensumindex)))
-                (dosum
+                (simpsum1
                   (mul
                     (power (mul -1 z) index)
                     (simplify (list '($pochhammer) 
                                     (sub '((rat simp) 1 2) ratorder)
                                     (sub ratorder (add index 1)))))
-                  index 0 (sub ratorder 1) t)))))
+                  index 0 (sub ratorder 1))))))
 
          ((< ratorder 0)
           (setq ratorder (- ratorder))
@@ -1537,13 +1582,13 @@
               (power z (sub '((rat simp) 1 2) ratorder))
               (inv (simplify (list '(%gamma) (sub '((rat simp) 1 2) ratorder))))
               (let ((index (gensumindex)))
-                (dosum
+                (simpsum1
                   (div
                     (power z index)
                     (simplify (list '($pochhammer) 
                                     (sub '((rat simp) 1 2) ratorder) 
                                     (add index 1))))
-                  index 0 (sub ratorder 1) t)))))))
+                  index 0 (sub ratorder 1))))))))
 
       ((and $gamma_expand (mplusp a) (integerp (cadr a)))
        (when *debug-gamma* 
@@ -1562,11 +1607,11 @@
                   (power z (add a -1))
                   (div 1 (simplify (list '(%gamma) a)))
                   (let ((index (gensumindex)))
-                    (dosum
+                    (simpsum1
                       (div
                         (power z index)
                         (simplify (list '($pochhammer) a index)))
-                      index 1 n t))))))
+                      index 1 n))))))
            ((< n 0)
             (setq n (- n))
             (add
@@ -1578,11 +1623,11 @@
                   (power z (sub a (add n 1)))
                   (div 1 (simplify (list '(%gamma) (add a (- n)))))
                   (let ((index (gensumindex)))
-                    (dosum
+                    (simpsum1
                       (div
                         (power z index)
                         (simplify (list '($pochhammer) (add a (- n)) index)))
-                      index 1 n t)))))))))
+                      index 1 n)))))))))
       
       (t (eqtest (list '(%gamma_incomplete_regularized) a z) expr)))))
 
@@ -1592,7 +1637,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $log_gamma (z)
+(defmfun $log_gamma (z)
   (simplify (list '(%log_gamma) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1834,7 +1879,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $erf (z)
+(defmfun $erf (z)
   (simplify (list '(%erf) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2094,7 +2139,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $erf_generalized (z1 z2)
+(defmfun $erf_generalized (z1 z2)
   (simplify (list '(%erf_generalized) z1 z2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2238,7 +2283,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $erfc (z)
+(defmfun $erfc (z)
   (simplify (list '(%erfc) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2365,7 +2410,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $erfi (z)
+(defmfun $erfi (z)
   (simplify (list '(%erfi) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2500,7 +2545,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $inverse_erf (z)
+(defmfun $inverse_erf (z)
   (simplify (list '(%inverse_erf) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2590,7 +2635,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $inverse_erfc (z)
+(defmfun $inverse_erfc (z)
   (simplify (list '(%inverse_erfc) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2854,7 +2899,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $fresnel_s (z)
+(defmfun $fresnel_s (z)
   (simplify (list '(%fresnel_s) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3072,7 +3117,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $fresnel_c (z)
+(defmfun $fresnel_c (z)
   (simplify (list '(%fresnel_c) z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3220,7 +3265,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $beta_incomplete (a b z)
+(defmfun $beta_incomplete (a b z)
   (simplify (list '(%beta_incomplete) a b z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3292,10 +3337,11 @@
 
 (defun simp-beta-incomplete (expr ignored simpflag)
   (declare (ignore ignored))
-  (if (not (= (length expr) 4)) (wna-err '$beta_incomplete))
+  (arg-count-check 3 expr)
   (let ((a (simpcheck (cadr expr)   simpflag))
         (b (simpcheck (caddr expr)  simpflag))
-        (z (simpcheck (cadddr expr) simpflag)))
+        (z (simpcheck (cadddr expr) simpflag))
+        ($simpsum t))
     (when *debug-gamma* 
          (format t "~&SIMP-BETA-INCOMPLETE:~%")
          (format t "~&   : a = ~A~%" a)
@@ -3377,13 +3423,13 @@
          (simplify (list '($beta) a b))
          (power z a)
          (let ((index (gensumindex)))
-           (dosum
+           (simpsum1
              (div
                (mul
                  (simplify (list '($pochhammer) a index))
                  (power (sub 1 z) index))
               (simplify (list '(mfactorial) index)))
-             index 0 (sub b 1) t))))
+             index 0 (sub b 1)))))
       
       ((and (integerp a) (plusp a))
        ;; Expand for a a positive integer.
@@ -3393,26 +3439,26 @@
            (mul
              (power (sub 1 z) b)
              (let ((index (gensumindex)))
-               (dosum 
+               (simpsum1 
                  (div
                    (mul
                      (simplify (list '($pochhammer) b index))
                      (power z index))
                  (simplify (list '(mfactorial) index)))
-               index 0 (sub a 1) t))))))
+               index 0 (sub a 1)))))))
       
       ((and (integerp a) (minusp a) (integerp b) (plusp b) (<= b (- a)))
        ;; Expand for a a negative integer and b an integer with b <= -a.
        (mul
          (power z a)
          (let ((index (gensumindex)))
-           (dosum
+           (simpsum1
              (div
                (mul (simplify (list '($pochhammer) (sub 1 b) index))
                     (power z index))
                (mul (add index a)
                     (simplify (list '(mfactorial) index))))
-             index 0 (sub b 1) t))))
+             index 0 (sub b 1)))))
 
       ((and $beta_expand (mplusp a) (integerp (cadr a)) (plusp (cadr a)))
        (let ((n (cadr a))
@@ -3426,7 +3472,7 @@
            (mul
              (power (add a b n -1) -1)
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (mul
                    (div
                      (simplify (list '($pochhammer) 
@@ -3437,7 +3483,7 @@
                                      index)))
                    (mul (power (sub 1 z) b)
                         (power z (add a n (mul -1 index) -1))))
-                index 0 (sub n 1) t))))))
+                index 0 (sub n 1)))))))
 
       ((and $beta_expand (mplusp a) (integerp (cadr a)) (minusp (cadr a)))
        (let ((n (- (cadr a)))
@@ -3454,7 +3500,7 @@
                  (list '($pochhammer) (add 2 (mul -1 a) (mul -1 b)) (sub n 1)))
                (simplify (list '($pochhammer) (sub 1 a) n)))
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (mul
                    (div
                      (simplify (list '($pochhammer) (sub 1 a) index))
@@ -3463,7 +3509,7 @@
                                      index)))
                    (mul (power (sub 1 z) b)
                         (power z (add a (mul -1 index) -1))))
-                index 0 (sub n 1) t))))))
+                index 0 (sub n 1)))))))
       
       (t
        (eqtest (list '(%beta_incomplete) a b z) expr)))))
@@ -3471,13 +3517,13 @@
 (defun beta-incomplete-expand-negative-integer (a b z)
   (mul
     (power z a)
-    (let ((index (gensumindex)))
-      (dosum
+    (let ((index (gensumindex)) ($simpsum t))
+      (simpsum1
         (div
           (mul (simplify (list '($pochhammer) (sub 1 b) index)) 
                (power z index))
           (mul (add index a) (simplify (list '(mfactorial) index))))
-        index 0 (sub b 1) t))))
+        index 0 (sub b 1)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -3561,7 +3607,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $beta_incomplete_generalized (a b z1 z2)
+(defmfun $beta_incomplete_generalized (a b z1 z2)
   (simplify (list '(%beta_incomplete_generalized) a b z1 z2)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3697,11 +3743,12 @@
 
 (defun simp-beta-incomplete-generalized (expr ignored simpflag)
   (declare (ignore ignored))
-  (if (not (= (length expr) 5)) (wna-err '$beta_incomplete_generalized))
+  (arg-count-check 4 expr)
   (let ((a  (simpcheck (second expr) simpflag))
         (b  (simpcheck (third expr)  simpflag))
         (z1 (simpcheck (fourth expr) simpflag))
-        (z2 (simpcheck (fifth expr)  simpflag)))
+        (z2 (simpcheck (fifth expr)  simpflag))
+        ($simpsum t))
     (cond
 
       ;; Check for specific values
@@ -3772,23 +3819,23 @@
            (mul
              (power (sub 1 z1) b)
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (div
                    (mul
                      (simplify (list '($pochhammer) b index))
                      (power z1 index))
                    (simplify (list '(mfactorial) index)))
-                index 0 (sub a 1) t)))
+                index 0 (sub a 1))))
            (mul
              (power (sub 1 z2) b)
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (div
                    (mul 
                      (simplify (list '($pochhammer) b index))
                      (power z2 index))
                    (simplify (list '(mfactorial) index)))
-                 index 0 (sub a 1) t))))))
+                 index 0 (sub a 1)))))))
 
       ((and (integerp b) (plusp b))
        (mul
@@ -3797,23 +3844,23 @@
            (mul
              (power z2 a)
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (div
                    (mul
                      (simplify (list '($pochhammer) a index))
                      (power (sub 1 z2) index))
                    (simplify (list '(mfactorial) index)))
-                index 0 (sub b 1) t)))
+                index 0 (sub b 1))))
            (mul
              (power z1 a)
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (div
                    (mul 
                      (simplify (list '($pochhammer) a index))
                      (power (sub 1 z1) index))
                    (simplify (list '(mfactorial) index)))
-                 index 0 (sub b 1) t))))))
+                 index 0 (sub b 1)))))))
       
       ((and $beta_expand (mplusp a) (integerp (cadr a)) (plusp (cadr a)))
        (let ((n (cadr a))
@@ -3827,7 +3874,7 @@
            (mul
              (power (add a b n -1) -1)
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (mul
                    (div
                      (simplify (list '($pochhammer) 
@@ -3841,7 +3888,7 @@
                           (power z1 (add a n (mul -1 index) -1)))
                      (mul (power (sub 1 z2) b)
                           (power z2 (add a n (mul -1 index) -1)))))
-                index 0 (sub n 1) t))))))
+                index 0 (sub n 1)))))))
 
       ((and $beta_expand (mplusp a) (integerp (cadr a)) (minusp (cadr a)))
        (let ((n (- (cadr a)))
@@ -3858,7 +3905,7 @@
                  (list '($pochhammer) (add 2 (mul -1 a) (mul -1 b)) (sub n 1)))
                (simplify (list '($pochhammer) (sub 1 a) n)))
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (mul
                    (div
                      (simplify (list '($pochhammer) (sub 1 a) index))
@@ -3870,7 +3917,7 @@
                           (power z2 (add a (mul -1 index) -1)))
                      (mul (power (sub 1 z1) b)
                           (power z1 (add a (mul -1 index) -1)))))
-                index 0 (sub n 1) t))))))
+                index 0 (sub n 1)))))))
       
       (t
        (eqtest (list '(%beta_incomplete_generalized) a b z1 z2) expr)))))
@@ -3881,7 +3928,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun $beta_incomplete_regularized (a b z)
+(defmfun $beta_incomplete_regularized (a b z)
   (simplify (list '(%beta_incomplete_regularized) a b z)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3963,10 +4010,11 @@
 
 (defun simp-beta-incomplete-regularized (expr ignored simpflag)
   (declare (ignore ignored))
-  (if (not (= (length expr) 4)) (wna-err '$beta_incomplete_regularized))
+  (arg-count-check 3 expr)
   (let ((a (simpcheck (second expr) simpflag))
         (b (simpcheck (third expr)  simpflag))
-        (z (simpcheck (fourth expr) simpflag)))
+        (z (simpcheck (fourth expr) simpflag))
+        ($simpsum t))
     (cond
 
       ;; Check for specific values
@@ -4057,7 +4105,7 @@
              (power (add a b n -1) -1)
              (power (simplify (list '($beta) (add a n) b)) -1)
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (mul
                    (div
                      (simplify (list '($pochhammer) 
@@ -4068,7 +4116,7 @@
                                      index)))
                    (power (sub 1 z) b)
                    (power z (add a n (mul -1 index) -1)))
-                index 0 (sub n 1) t))))))
+                index 0 (sub n 1)))))))
 
       ((and $beta_expand (mplusp a) (integerp (cadr a)) (minusp (cadr a)))
        (let ((n (- (cadr a)))
@@ -4079,7 +4127,7 @@
              (power (add a b -1) -1)
              (power (simplify (list '($beta) a b)) -1)
              (let ((index (gensumindex)))
-               (dosum
+               (simpsum1
                  (mul
                    (div
                      (simplify (list '($pochhammer) (sub 1 a) index))
@@ -4088,7 +4136,7 @@
                                      index)))
                    (power (sub 1 z) b)
                    (power z (add a (mul -1 index) -1)))
-                index 0 (sub n 1) t))))))
+                index 0 (sub n 1)))))))
 
       (t
        (eqtest (list '(%beta_incomplete_regularized) a b z) expr)))))

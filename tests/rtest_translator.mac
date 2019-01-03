@@ -316,6 +316,10 @@ true;
  
 /* compile_file */
 
+/* skip this test (and fail) if Lisp = ECL because stream i/o causes "stack smashing" error
+ * see: https://sourceforge.net/p/maxima/bugs/3291/
+ */
+if build_info()@lisp_name # "ECL" then
 (kill (all),
  lisp_name : ssubst ("_", " ", build_info()@lisp_name),
  maxima_filename : sconcat (maxima_tempdir, "/tmp-rtest_translator-compile_file-", lisp_name, ".mac"),
@@ -339,6 +343,10 @@ true;
 
 /* translate_file */
 
+/* skip this test (and fail) if Lisp = ECL because stream i/o causes "stack smashing" error
+ * see: https://sourceforge.net/p/maxima/bugs/3291/
+ */
+if build_info()@lisp_name # "ECL" then
 (kill (all),
  lisp_name : ssubst ("_", " ", build_info()@lisp_name),
  maxima_filename : sconcat (maxima_tempdir, "/tmp-rtest_translator-translate_file-", lisp_name, ".mac"),
@@ -367,6 +375,10 @@ true;
    file (which contains messages from the translator) and checks that
    there aren't any warnings.
 */
+/* skip this test (and fail) if Lisp = ECL because stream i/o causes "stack smashing" error
+ * see: https://sourceforge.net/p/maxima/bugs/3291/
+ */
+if build_info()@lisp_name # "ECL" then
 (kill (all),
  lisp_name : ssubst ("_", " ", build_info()@lisp_name),
  basename: sconcat (maxima_tempdir, "/tmp-rtest_translator-2934-", lisp_name),
@@ -455,4 +467,182 @@ map (?fboundp, [foo, baz, quux]);
 [bar(5), umm(5), mumble(5)];
 [16, 26, 6];
 
+/* mailing list 2017-03-04: "An example that is broken by compile()"
+ * translated code tickles a bug elsewhere (bug not in translator)
+ */
 
+(kill(fun, trigfunc, t1),
+ fun():=block([trigfunc],
+        trigfunc:lambda([cur],cur>t1),
+        apply('trigfunc,[1])),
+ 0);
+0;
+
+/* I (Robert Dodier) believe this result should be trigfunc(1),
+ * but, in any event, interpreted and compiled code should agree.
+ * But if MAPPLY1 is ever changed, we can adjust these results.
+ */
+fun();
+1 > t1;
+
+(compile(fun), fun());
+1 > t1;
+
+(kill(fun, trigfunc, t1),
+ fun():=block([trigfunc],
+        trigfunc:lambda([cur],cur>t1),
+        apply(trigfunc,[1])),
+ 0);
+0;
+
+fun();
+1 > t1;
+
+(compile(fun), fun());
+1 > t1;
+
+/* Verify that we catch malformed lambda expressions during translation.
+ * More checks need to be added to the translator and more tests need to
+ * be added here.
+ */
+
+/* no parameter list */
+(kill (f),
+ f () := lambda (),
+ translate (f))$
+[];
+
+/* empty body */
+(kill (f),
+ f () := lambda ([x]),
+ translate (f))$
+[];
+
+/* non-symbol in parameter list */
+(kill (f),
+ f () := lambda ([42], 'foo),
+ translate (f))$
+[];
+
+/* misplaced "rest" parameter */
+(kill (f),
+ f () := lambda ([[l], x], 'foo),
+ translate (f))$
+[];
+
+/* invalid "rest" parameter */
+(kill (f),
+ f () := lambda ([[l1, l2]], 'foo),
+ translate (f))$
+[];
+
+/* attempting to bind a constant;
+ * now OK, after commit 0517895
+ */
+block ([c, f],
+  local (c, f),
+  declare (c, constant),
+  f () := lambda ([c], c),
+  translate (f))$
+[f];
+
+/* Verify that parameter/variable lists cannot contain duplicate variables.
+ *
+ * We only test a couple of cases here.  Many more tests for non-translated
+ * code are in rtest2.  Do we want to test them all here as well?
+ */
+
+(kill(f),
+ f () := lambda ([x, [x]], x),
+ translate (f))$
+[];
+
+(kill(f),
+ f () := block ([x, x:'foo], x),
+ translate (f))$
+[];
+
+/* ensure that a null OPERATORS property doesn't interfere with
+ * translation of local variable used as a function name.
+ * This is the bug that caused failures in rtest_fractals when executed after run_testsuite.
+ */
+
+(kill(aa, foobarbaz, mumbleblurf, hhh),
+ matchdeclare (aa, all),
+ tellsimp (mumbleblurf(aa), 1 - aa),
+ kill (mumbleblurf), /* as of 2018-01-28, this leaves (OPERATORS NIL) in property list */
+ hhh(mumbleblurf, u) := mumbleblurf(u),
+ foobarbaz(x) := 100 + x,
+ translate (hhh),
+ hhh (foobarbaz, 11));
+111;
+
+/* SF bug report #3402: "Unbinding defined variable generates error in compiled functions" */
+
+define_variable (zorble, 0, fixnum);
+0;
+
+(kill(f), f() := block ([zorble], 42), f());
+42;
+
+translate(f);
+[f];
+
+f();
+42;
+
+/* bug reported to mailing list 2018-12-03: "error in compiling function with global variable" */
+
+(test_f():= block( [a,b,c,d], niceindicespref:[a,b,c,d], disp("ciao"), return() ),
+ 0);
+0;
+
+(test_f (), niceindicespref);
+[a,b,c,d];
+
+(reset (niceindicespref),
+ niceindicespref);
+[i,j,k,l,m,n];
+
+(translate (test_f),
+ test_f (),
+ niceindicespref);
+[a,b,c,d];
+
+(reset (niceindicespref), 0);
+0;
+
+/* additional tests with variables which have ASSIGN property */
+
+(set_error_stuff_permanently () :=
+  block (error_syms : '[myerr1, myerr2, myerr3], error_size : 40),
+ set_error_stuff_temporarily() :=
+   block([error_syms : '[myerror1, myerror2, myerror3], error_size : 55],
+         [error_syms, error_size]),
+ 0);
+0;
+
+(reset (error_syms, error_size),
+ set_error_stuff_permanently (),
+ [error_syms, error_size]);
+[[myerr1, myerr2, myerr3], 40];
+
+(reset (error_syms, error_size),
+ translate (set_error_stuff_permanently),
+ set_error_stuff_permanently (),
+ [error_syms, error_size]);
+[[myerr1, myerr2, myerr3], 40];
+
+(reset (error_syms, error_size),
+ set_error_stuff_temporarily());
+[[myerror1, myerror2, myerror3], 55];
+
+[error_syms, error_size];
+[[errexp1, errexp2, errexp3], 60];
+
+(translate (set_error_stuff_temporarily),
+ set_error_stuff_temporarily());
+[[myerror1, myerror2, myerror3], 55];
+
+[error_syms, error_size];
+[[errexp1, errexp2, errexp3], 60];

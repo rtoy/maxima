@@ -586,6 +586,96 @@ m(1);
 kill (functions, arrays);
 done;
 
+/* Verify that we catch malformed lambda expressions when they are simplified.
+ * These used to only be checked for if/when lambda expressions were applied
+ * to arguments.
+ */
+
+/* no parameter list */
+errcatch (lambda ())$
+[];
+
+/* empty body */
+errcatch (lambda ([x]))$
+[];
+
+/* non-symbol in parameter list */
+errcatch (lambda ([42], 'foo))$
+[];
+
+/* misplaced list parameter (for optional arguments) */
+errcatch (lambda ([[l], x], 'foo))$
+[];
+
+/* invalid list parameter (for optional arguments) */
+errcatch (lambda ([[l1, l2]], 'foo))$
+[];
+
+/* attempting to bind a constant is allowed */
+block ([c],
+  local (c),
+  declare (c, constant),
+  errcatch (lambda ([c], c)))$
+[lambda([c], c)];
+
+/* Verify that the parameter/variable lists of functions, lambda expressions,
+ * macros and blocks cannot contain duplicate variables.  Lots of cases...
+ */
+
+errcatch (foo (x, x) := x)$
+[];
+
+errcatch (foo (x, 'x) := x)$
+[];
+
+errcatch (foo (x, [x]) := x)$
+[];
+
+errcatch (foo (x, ['x]) := x)$
+[];
+
+errcatch (foo [x, x] := x)$
+[];
+
+errcatch (foo [x] (y, y) := y)$
+[];
+
+errcatch (foo [x] (y, 'y) := y)$
+[];
+
+errcatch (foo [x] (y, [y]) := y)$
+[];
+
+errcatch (foo [x] (y, ['y]) := y)$
+[];
+
+errcatch (foo [x, x] (y) := y)$
+[];
+
+errcatch (lambda ([x, x], x))$
+[];
+
+errcatch (lambda ([x, 'x], x))$
+[];
+
+errcatch (lambda ([x, [x]], x))$
+[];
+
+errcatch (lambda ([x, ['x]], x))$
+[];
+
+errcatch (foo (x, x) ::= x)$
+[];
+
+errcatch (foo (x, [x]) ::= x)$
+[];
+
+errcatch (block ([x, x], x))$
+[];
+
+errcatch (block ([x, x:foo], x))$
+[];
+
 /* try to verify that save(...) handles arrays correctly */
 
 (kill (all),
@@ -898,3 +988,73 @@ baz[k](a, 3, %pi, b, -2, %e, z, 0, %phi);
 errcatch (lastn (bazexpr, -4));
 [];
 
+/* bug reported to mailing list 2017-09-05: "compiling a function including sorting" */
+
+(kill(test), test(L):=sort(L,lambda([s,t],s[2]>t[2])), 0);
+0;
+
+(L:[[b,2],[a,1],[d,4],[c,3]], test (L));
+[[d,4],[c,3],[b,2],[a,1]];
+
+(compile (test), test (L));
+[[d,4],[c,3],[b,2],[a,1]];
+
+(mycmp (s, t) := s[2]>t[2], 0);
+0;
+
+sort (L, mycmp);
+[[d,4],[c,3],[b,2],[a,1]];
+
+(compile (mycmp), is (?fboundp (mycmp) # false));
+true;
+
+sort (L, mycmp);
+[[d,4],[c,3],[b,2],[a,1]];
+
+
+/* bug reported to mailing list 2017-12-21: "array() with use_fast_arrays: true" */
+
+(use_fast_arrays : true,
+ kill (a, b, a0, a1),
+ array ([a, b], 1),
+ map (?arrayp, %%));
+[true, true];
+
+map (?length, [a, b]);
+[2, 2];
+
+(a[0] : a0,
+ a[1] : a1,
+ listarray (a));
+[a0, a1];
+
+listarray (b);
+[false, false];
+
+(reset (), 0);
+0;
+
+/* mailing list 2017-12-28: "op('(do 1))" */
+
+(e : '(for i:111 thru 114 do push(i, L)),
+ [op(e), args(e)]);
+["do", [i,111,false,false,114,false,push(i,L)]];
+
+e1 : apply (funmake, ["do", '[i,111,false,false,114,false,push(i,L)]]);
+for i:111 thru 114 do push(i, L);
+
+block ([L:[]], ev(e1), L);
+[114, 113, 112, 111];
+
+(e : '(for x in [100, 200, 300] do push(x - 1, M)),
+ [op(e), args(e)]);
+["do_in", [x,[100,200,300],false,false,false,false,push(x-1,M)]];
+
+e1 : apply (funmake, ["do_in", '[x,[100,200,300],false,false,false,false,push(x-1,M)]]);
+for x in [100, 200, 300] do push(x - 1, M);
+
+block ([M:[]], ev(e1), M);
+[299, 199, 99];
+
+(reset(use_fast_arrays),1);
+1;

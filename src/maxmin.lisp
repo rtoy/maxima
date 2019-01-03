@@ -180,11 +180,11 @@
 
 (defun maximin (l op) (simplify `((,op) ,@l)))
  
-(defmfun-checked $lmax (e)
-  (simplify `(($max) ,@(require-list-or-set e "$lmax")))) 
+(defmfun $lmax (e)
+  (simplify `(($max) ,@(require-list-or-set e '$lmax)))) 
 
-(defmfun-checked $lmin (e)
-  (simplify `(($min) ,@(require-list-or-set e "$lmin"))))
+(defmfun $lmin (e)
+  (simplify `(($min) ,@(require-list-or-set e '$lmin))))
 
 ;; Return the narrowest comparison operator op (<, <=, =, >, >=) such that
 ;; a op b evaluates to true. Return 'unknown' when either there is no such 

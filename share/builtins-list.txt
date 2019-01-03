@@ -741,9 +741,9 @@ g1
 gamma
 %gamma
 gamma_expand
-gamma_greek
 gamma_incomplete
 gamma_incomplete_generalized
+gamma_incomplete_lower
 gamma_incomplete_regularized
 gammalim
 gauss
@@ -1378,7 +1378,7 @@ nofix
 nolabels
 nonarray
 noncentral_moment
-nonegative_lp
+nonnegative_lp
 noninteger
 nonmetricity
 nonnegintegerp
@@ -1795,6 +1795,7 @@ read_binary_matrix
 readbyte
 readchar
 read_hashed_array
+read_hash_table
 readline
 read_list
 read_matrix

@@ -9,45 +9,51 @@
 # If no further patches are needed, you should get a
 # updated setup-file automatically.
 
-set(WXMAXIMAVERSION "16.12.0")
+set(WXMAXIMAVERSION "18.12.0")
 
-set(WXMAXIMA_MD5    "324e91f865996597e0f18a2231a94261")
+set(WXMAXIMA_MD5    "baae50d3bce21564f17e00d30d30fa10")
 
-set(WXMAXIMA_URL  "http://sourceforge.net/projects/wxmaxima/files/wxMaxima/${WXMAXIMAVERSION}/wxmaxima-${WXMAXIMAVERSION}.tar.gz")
+set(WXMAXIMA_URL    "https://github.com/wxmaxima-developers/wxmaxima/archive/Version-${WXMAXIMAVERSION}.tar.gz")
 
-set(WXMAXIMA_GIT "https://github.com/andrejv/wxmaxima.git")
+set(WXMAXIMA_GIT    "https://github.com/wxmaxima-developers/wxmaxima.git")
 
 if(USE_WXMAXIMA_GIT)
+    find_package(Git REQUIRED)
+    message(STATUS "Cloning or updating local wxmaxima git repository.")
+    execute_process(COMMAND mkdir -p ${CMAKE_SOURCE_DIR}/downloads/wxmaxima-git
+                    COMMAND sh -c "test -d wxmaxima-git/.git || \"${GIT_EXECUTABLE}\" clone \"${WXMAXIMA_GIT}\" wxmaxima-git"
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/downloads)
+
+    execute_process(COMMAND sh -c "test -d .git && \"${GIT_EXECUTABLE}\" pull"
+                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/downloads/wxmaxima-git)
+
     externalproject_add(wxmaxima-git
         GIT_REPOSITORY ${WXMAXIMA_GIT}
         DEPENDS wxwidgets
-        PATCH_COMMAND  ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/wxwidgets/wxwidgets-prefix/src/wxwidgets/wxwin.m4 ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-git-prefix/src/wxmaxima-git/acinclude.m4
-              COMMAND ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-git-prefix/src/wxmaxima-git/bootstrap
-        CONFIGURE_COMMAND  ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-git-prefix/src/wxmaxima-git/configure --host=${HOST} --with-wx-config=${CMAKE_BINARY_DIR}/wxwidgets/wxwidgets-prefix/src/wxwidgets-build/wx-config --prefix=C:/maxima-${MAXIMAVERSION}
+        # search wx-config here - do not use the host wx-config
+        # had to set CMAKE_LIBRARY_PATH=/usr/${HOST}/lib - libraries for mingw are installed there, but CMake (>3.8)
+        # tries to check all the libraries reported by wx-config, but does not check this directory...
+        CMAKE_CACHE_ARGS "-DCMAKE_PROGRAM_PATH:PATH=${CMAKE_BINARY_DIR}/wxwidgets/wxwidgets-prefix/src/wxwidgets-build"
+        CMAKE_ARGS -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_RC_COMPILER=${CMAKE_RC_COMPILER} -DCMAKE_LIBRARY_PATH=/usr/${HOST}/lib -DCMAKE_INSTALL_PREFIX=${WINDOWS_DRIVELETTER}:/maxima-${MAXIMAVERSION} -DCMAKE_BUILD_TYPE=DEBUG
         BUILD_COMMAND $(MAKE)
-<<<<<<< HEAD
-              COMMAND $(MAKE) allmo
-              COMMAND $(MAKE) wxMaxima.win
-       INSTALL_COMMAND ""
     )
-    install(DIRECTORY ${CMAKE_BINARY_DIR}/wxmaxima-git/wxmaxima-git-prefix/src/wxmaxima-git-build/wxMaxima/ DESTINATION wxMaxima)
-=======
-              COMMAND $(MAKE) translations
-        INSTALL_COMMAND $(MAKE) install
-    )
-    install(DIRECTORY ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-git-prefix/src/wxmaxima-git-build/C:/maxima-${MAXIMAVERSION}/ DESTINATION .)
->>>>>>> Crosscompiling: Compile the wxMaxima Git version with CMake
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-git-prefix/src/wxmaxima-git-build/${WINDOWS_DRIVELETTER}\:/maxima-${MAXIMAVERSION}/ DESTINATION . COMPONENT wxMaxima)
 else()
     externalproject_add(wxmaxima
         URL "${WXMAXIMA_URL}"
         DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+        DOWNLOAD_NAME wxmaxima-${WXMAXIMAVERSION}.tar.gz
         URL_MD5 ${WXMAXIMA_MD5}
         DEPENDS wxwidgets
-        CONFIGURE_COMMAND ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-prefix/src/wxmaxima/configure --host=${HOST} --with-wx-config=${CMAKE_BINARY_DIR}/wxwidgets/wxwidgets-prefix/src/wxwidgets-build/wx-config --prefix=C:/maxima-${MAXIMAVERSION}
+        # search wx-config here - do not use the host wx-config
+        # had to set CMAKE_LIBRARY_PATH=/usr/${HOST}/lib - libraries for mingw are installed there, but CMake (>3.8)
+        # tries to check all the libraries reported by wx-config, but does not check this directory...
+        CMAKE_CACHE_ARGS "-DCMAKE_PROGRAM_PATH:PATH=${CMAKE_BINARY_DIR}/wxwidgets/wxwidgets-prefix/src/wxwidgets-build"
+        CMAKE_ARGS -DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_RC_COMPILER=${CMAKE_RC_COMPILER} -DCMAKE_LIBRARY_PATH=/usr/${HOST}/lib -DCMAKE_INSTALL_PREFIX=${WINDOWS_DRIVELETTER}:/maxima-${MAXIMAVERSION}
         BUILD_COMMAND $(MAKE)
-              COMMAND $(MAKE) allmo
-              COMMAND $(MAKE) wxMaxima.win
-        INSTALL_COMMAND ""
     )
-    install(DIRECTORY ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-prefix/src/wxmaxima-build/wxMaxima/ DESTINATION wxMaxima)
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/wxmaxima/wxmaxima-prefix/src/wxmaxima-build/${WINDOWS_DRIVELETTER}\:/maxima-${MAXIMAVERSION}/ DESTINATION . COMPONENT wxMaxima)
 endif()
+
+# install wxWidgets locale files
+install(DIRECTORY ${CMAKE_BINARY_DIR}/wxMaxima-translations/wxMaxima DESTINATION . COMPONENT wxMaxima)

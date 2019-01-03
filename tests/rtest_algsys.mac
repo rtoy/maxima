@@ -56,13 +56,13 @@ block( [%rnum:0],
   algsys([g526+((sqrt(a^2+4)-a)/2+a)*g525,
           ((sqrt(a^2+4)-a)*g526)/2+g525],
 	 [g525,g526]));
-[[g525 = %r1,g526 = -(%r1*(sqrt(a^2+4)+a))/2]];
+[[g525 = %r1,g526 = -((%r1*sqrt(a^2+4)+%r1*a)/2)]];
 
 block( [%rnum:0],
   algsys([g625+(a-(sqrt(a^2+4)+a)/2)*g624,
            g624-((sqrt(a^2+4)+a)*g625)/2],
 	   [g624,g625]));
-[[g624 = %r1,g625 = (%r1*(sqrt(a^2+4)-a))/2]];
+[[g624 = %r1,g625 = (%r1*sqrt(a^2+4)-%r1*a)/2]];
 
 /* Working example from bug #3150 */
 algsys([x^2+y^2=1, x^2+(y-3)^2=9],[x,y]);
@@ -191,7 +191,7 @@ algsys([2*k*y+2*h*x+s^2-k^2-h^2-d^2,
  *   also #3212 ALGSYS throws error
  *
  * Note: %nrum is the counter for the %r variables introduced
- *       by algsys.  Set it to 0 for reproducable results
+ *       by algsys.  Set it to 0 for reproducible results
  */
 block([%rnum:0], algsys([
  4*y*(y^2-28),
@@ -243,5 +243,337 @@ block([%rnum:0], algsys([
 [v,w,x,y,z]));
 [[v=%r1,w=%r2,x=%r3,y=%r4,z=0]];
 
-(kill(eqt,eqs,F,G),done)$
+/* Test problems distilled from share/contrib/diffequations tests
+
+   The odelin method for linear second order ODEs calls algys.
+   Changes to algsys capability change the odelin results.
+   A number of tests below were obtained by tracing algsys
+   while solving ODES with odelin (or contrib_ode).
+ */
+
+/* Solved by odelin for Kamke ODE 2.265.  New solution 2016-09 */
+ algsys(
+ [y = -1,
+  z = 1,
+  (-w^2)+2*v*w-v^2+5,2*((w+v-1)*x+4*w^2-10*v*w+4*v^2-22),
+  (-x^2)-(12*w+12*v-12)*x+((-2*w)-2*v+2)*x+2*x-26*w^2+80*v*w-26*v^2+161,
+  (-4*x^2)+((-8*w)-8*v+8)*x+8*x-4*w^2+24*v*w-4*v^2+48,
+  2*(3*x^2+(13*w+13*v-13)*x+(6*w+6*v-6)*x-6*x+22*w^2-82*v*w+22*v^2-157),
+  -2*((-6*x^2)-(12*w+12*v-12)*x+((-4*w)-4*v+4)*x+12*x-10*w^2+52*v*w
+     -10*v^2+100),
+  (-13*x^2)-(24*w+24*v-24)*x+((-26*w)-26*v+26)*x+26*x-41*w^2+182*v*w
+     -41*v^2+344],
+ [v,w,x,y,z]);
+[[v =   (sqrt(5)+5)/2,  w = -((sqrt(5)-5)/2), x = 3,  y = -1, z = 1],
+ [v = -((sqrt(5)-5)/2), w =   (sqrt(5)+5)/2,  x = 3,  y = -1, z = 1],
+ [v =   (sqrt(5)-3)/2,  w = -((sqrt(5)+3)/2), x = -1, y = -1, z = 1],
+ [v = -((sqrt(5)+3)/2), w =   (sqrt(5)-3)/2,  x = -1, y = -1, z = 1],
+ [v =   (sqrt(5)+1)/2,  w = -((sqrt(5)-1)/2), x = 3,  y = -1, z = 1],
+ [v = -((sqrt(5)-1)/2), w =   (sqrt(5)+1)/2,  x = 3,  y = -1, z = 1],
+ [v =   (sqrt(5)+1)/2,  w = -((sqrt(5)-1)/2), x = -1, y = -1, z = 1],
+ [v = -((sqrt(5)-1)/2), w =   (sqrt(5)+1)/2,  x = -1, y = -1, z = 1]];
+
+/* Solved by odelin for Murphy ODE 1.182.  New solution 2016-10 */
+/* FIXME:  Testsuite issue.  Can't match form of solution 
+algsys(
+ [x = -2*sqrt(-a1*a3),
+  4*sqrt(-a1*a3)*((-4*a1*a3*(2*y-z))-4*a0*a3*sqrt(-a1*a3)),
+  8*(-a1*a3)^(3/2)*(z^2-2*z-a2^2+2*a2)],
+  [x,y,z]);
+[[x = -2*sqrt(-a1*a3),
+  y = -((a0*sqrt(-a1*a3)+a1*a2-2*a1)/(2*a1)),
+  z = 2-a2],
+ [x = -2*sqrt(-a1*a3),
+  y = -((a0*sqrt(-a1*a3)-a1*a2)/(2*a1)),
+  z = a2]];
+ */
+
+/* Solved by odelin for Kamke ODE 1.105.  New solution 2016-10 */
+/* FIXME:  Testsuite issue.  Can't match form of solution
+algsys(
+ [4*sqrt(-a*c)*((-4*a*c*(2*y-z))-4*a*sqrt(-a*c)*d),
+  8*(-a*c)^(3/2)*(z^2-2*z-b^2+2*b)],
+ [y,z]);
+[[y = -((sqrt(-a*c)*d+(b-2)*c)/(2*c)), z = 2-b],
+ [y = -((sqrt(-a*c)*d-b*c)/(2*c)),     z = b]];
+ */
+ 
+/* Solved by odelin for Kamke ODE 1.291.  New solution 2016-10 */
+algsys([
+ -2*(18*y^2-36*x*y+18*x^2-5),
+ (72*y+72*x-72)*z+72*y^2-288*x*y+72*x^2+69,
+ (-36*z^2)-(144*y+144*x-144)*z+72*z-36*y^2+360*x*y-36*x^2-203,
+ 72*z^2-((-72*y)-72*x+72)*z-144*z-144*x*y+159,(-36*z^2)+72*z-35],
+ [x,y,z]);
+[[x =   (sqrt(10)-3)/12,   y = -((sqrt(10)+3)/12),  z = 5/6],
+ [x = -((sqrt(10)+3)/12),  y =   (sqrt(10)-3)/12,   z = 5/6],
+ [x =   (sqrt(10)+13)/12,  y = -((sqrt(10)-13)/12), z = 5/6],
+ [x = -((sqrt(10)-13)/12), y =   (sqrt(10)+13)/12,  z = 5/6],
+ [x =   (sqrt(10)+15)/12,  y = -((sqrt(10)-15)/12), z = 7/6],
+ [x = -((sqrt(10)-15)/12), y =   (sqrt(10)+15)/12,  z = 7/6],
+ [x =   (sqrt(10)-1)/12,   y = -((sqrt(10)+1)/12),  z = 7/6],
+ [x = -((sqrt(10)+1)/12),  y =   (sqrt(10)-1)/12,   z = 7/6]];
+
+/* SF bug #2038
+   solve(eqs,[x,y]) gives correct solution
+   solve(subst(sqrt(3),q,eqs),[x,y]) yields []!
+*/
+algsys(eqs:[y^2+x^2-(400-400/(2/q+1))^2=0,
+       (-y-400/(2/q+1)+400)^2+x^2-640000/(2/q+1)^2=0],[x,y]);
+[[x = -(400*q*sqrt(-((q-2)/(q+2)))), y = -((400*q^2-800)/(q+2))],
+ [x =   400*q*sqrt(-((q-2)/(q+2))),  y = -((400*q^2-800)/(q+2))]];
+
+algsys(subst(q=sqrt(3),eqs),[x,y]);
+[[x = 1200-800*sqrt(3),y = 400*sqrt(3)-800],
+ [x = 800*sqrt(3)-1200,y = 400*sqrt(3)-800]];
+
+algsys(subst(q=1-sqrt(3),eqs),[x,y]);
+[[x = -((25*2^(9/2))/3^(1/4)), y = 800/sqrt(3)],
+ [x =   (25*2^(9/2))/3^(1/4),  y = 800/sqrt(3)]];
+
+/* SF bug #2736 (in comments)
+   Solving with p=1/(1-cos(1)) gave incorrect solution */
+eqs:[x*y=p,x-y=3]$
+[x*y = p,x-y = 3];
+
+algsys(subst(p=1/(1-cos(1)),eqs),[x,y])$
+[[x =   -((sqrt(9*cos(1)^2-22*cos(1)+13)-3*cos(1)+3)/(2*cos(1)-2)),
+  y =   -((sqrt(9*cos(1)^2-22*cos(1)+13)+3*cos(1)-3)/(2*cos(1)-2))],
+ [x =     (sqrt(9*cos(1)^2-22*cos(1)+13)+3*cos(1)-3)/(2*cos(1)-2),
+  y =     (sqrt(9*cos(1)^2-22*cos(1)+13)-3*cos(1)+3)/(2*cos(1)-2)]];
+
+float(%)$
+[[x =  3.603649840080336, y =  0.603649840080336],
+ [x = -0.603649840080336, y = -3.603649840080336]];
+
+float(algsys(subst(p=float(1/(1-cos(1))),eqs),[x,y]))$
+[[x = -0.6036497963666444,y = -3.603649796366644],
+ [x =  3.603649796366644, y =  0.6036497963666444]];
+
+/* SF bug 2059 - variable order dependent
+   No solution found for certain solution variable orders
+ */
+(eqs:[z-a=%i*b,z+a=c,a*z+3*(a-z)=13-12*%i,3*(z-a)+a*z=12*%i+13],
+algsys(eqs,[a,b,c,z]));
+[[a = (-2*%i)-3, b = 4, c = -6, z = 2*%i-3],
+ [a = 3-2*%i,    b = 4, c =  6, z = 2*%i+3]];
+
+/* Count the number of solutions for each permuation of variable */
+map(length,
+  map(lambda([u],algsys(eqs,u)), listify(permutations([a,b,c,z]))));
+[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2];
+
+/* SF bug #453 algsys fails in simple case */
+algsys([v^2-2*v+u^2+10*u+1,v^2-10*v+u^2+2*u+1],[v,u]);
+[[v = -((sqrt(34)-6)/2), u =   (sqrt(2)*sqrt(17)-6)/2],
+ [v =   (sqrt(34)+6)/2,  u = -((sqrt(2)*sqrt(17)+6)/2)]];
+
+algsys([2*v^2-12*v+1,v^2-2*v+u^2+10*u+1],[v,u]);
+
+[[v = -((sqrt(2)*sqrt(17)-6)/2), u = -((sqrt(34)+14)/2)],
+ [v =   (sqrt(2)*sqrt(17)+6)/2,  u =   (sqrt(34)-14)/2],
+ [v =   (sqrt(2)*sqrt(17)+6)/2,  u = -((sqrt(34)+6)/2)],
+ [v = -((sqrt(2)*sqrt(17)-6)/2), u =   (sqrt(34)-6)/2]];
+
+/* Solved by odelin for Kamke ODE 2.184. */
+algsys(
+[w^2-a^2*w,2*w*x-2*a^2*x,
+ w*(2*y+2*a*c+b^2)-3*a^2*y+x^2-2*a*b*x+A*a^2,
+ w*(2*z+4*b*c)-4*a^2*z+2*x*y-4*a*b*y+2*A*a*b,
+ x*(2*z+2*b*c)-6*a*b*z+y^2+((-2*a*c)-b^2)*y+3*c^2*w+2*A*a*c+A*b^2,
+ 2*y*z+((-4*a*c)-2*b^2)*z+2*c^2*x+2*A*b*c,z^2-2*b*c*z+c^2*y+A*c^2],
+ [w,x,y,z]);
+[[w = a^2,
+  x = -((a*sqrt((-4*a*c)+b^2-4*A)-3*a*b)/2),
+  y = -((b*sqrt((-4*a*c)+b^2-4*A)-2*a*c-b^2)/2),
+  z = -((c*sqrt((-4*a*c)+b^2-4*A)-b*c)/2)],
+ [w = a^2,
+  x = (a*sqrt((-4*a*c)+b^2-4*A)+3*a*b)/2,
+  y = (b*sqrt((-4*a*c)+b^2-4*A)+2*a*c+b^2)/2,
+  z = (c*sqrt((-4*a*c)+b^2-4*A)+b*c)/2]];
+
+/* Solved by odelin for Kamke ODE 2.119. */
+ algsys([x^2-x-b^2-b,2*x*y-2*y,y^2],[x,y]);
+[[x = -b, y = 0], [x = b+1, y = 0]];
+
+/* Solved by odelin for Kamke ODE 2.331. */
+algsys([x^2-16*x+48,2*x*y-32*y-192,y^2+64*y+64*x+192],[x,y]);
+[[x = 12,y = -24],[x = 4,y = -8]];
+
+/* Solved by odelin for Kamke ODE 2.382. */
+algsys([
+ w^2-w,
+ 2*w*x-2*x,w*(2*y+b^2+4*a*b+a^2)-3*y+x^2+(2*b+2*a)*x-c,
+ w*(2*z-4*a*b^2-4*a^2*b)-4*z+2*x*y+(4*b+4*a)*y+(2*b+2*a)*c,
+ x*(2*z-2*a*b^2-2*a^2*b)+(6*b+6*a)*z+y^2+((-b^2)-4*a*b-a^2)*y
+   +3*a^2*b^2*w+((-b^2)-4*a*b-a^2)*c,
+ 2*y*z+((-2*b^2)-8*a*b-2*a^2)*z+2*a^2*b^2*x+(2*a*b^2+2*a^2*b)*c,
+ z^2+(2*a*b^2+2*a^2*b)*z+a^2*b^2*y-a^2*b^2*c],
+[w,x,y,z]);
+[[w = 1,
+ x = -((sqrt(4*c+b^2-(2*a*b)+a^2)+3*b+3*a)/2),
+ y = ((b+a)*sqrt(4*c+b^2-(2*a)*b+a^2)+b^2+4*a*b+a^2)/2,
+ z = -((a*b*sqrt(4*c+b^2-(2*a*b)+a^2)+a*b^2+a^2*b)/2)],
+[w = 1,
+ x = (sqrt(4*c+b^2-(2*a*b)+a^2)-3*b-3*a)/2,
+ y = -(((b+a)*sqrt(4*c+b^2-2*a*b+a^2)-b^2-4*a*b-a^2)/2),
+ z = (a*b*sqrt(4*c+b^2-2*a*b+a^2)-a*b^2-a^2*b)/2]];
+
+/* Solved by odelin for Kamke ODE 2.383. */
+algsys([
+  w^2-4*w,
+  2*w*x-8*x,
+  w*(2*y+4*b^2+16*a*b+4*a^2)-12*y+x^2+(8*b+8*a)*x+b*(8*a*b^2-16*a^2*b+8*a^3)
+                            +(4-4*a^2)*b^2+b^2*((-4*b^2)+8*a*b-4*a^2)
+                            +(8*a^3-8*a)*b-4*a^4+4*a^2,
+  w*(2*z-16*a*b^2-16*a^2*b)-16*z+2*x*y+(16*b+16*a)*y
+                           +b*((-16*a*b^3)+16*a^2*b^2+16*a^3*b-16*a^4)
+                           +b^2*(8*b^3-8*a*b^2-8*a^2*b+8*a^3)+(8*a^2-8)*b^3
+                           +(8*a-8*a^3)*b^2+(8*a^2-8*a^4)*b+8*a^5-8*a^3,
+  x*(2*z-8*a*b^2-8*a^2*b)+(24*b+24*a)*z+y^2+((-4*b^2)-16*a*b-4*a^2)*y
+                         +12*a^2*b^2*w
+                         +b*(8*a*b^4+16*a^2*b^3-48*a^3*b^2+16*a^4*b+8*a^5)
+                         +(4-4*a^2)*b^4
+                         +b^2*((-4*b^4)-8*a*b^3+24*a^2*b^2-8*a^3*b-4*a^4)
+                         +(8*a-8*a^3)*b^3+(24*a^4-24*a^2)*b^2+(8*a^3-8*a^5)*b
+                         -4*a^6+4*a^4,
+  2*y*z+((-8*b^2)-32*a*b-8*a^2)*z+8*a^2*b^2*x
+       +b*((-16*a^2*b^4)+16*a^3*b^3+16*a^4*b^2-16*a^5*b)
+       +b^2*(8*a*b^4-8*a^2*b^3-8*a^3*b^2+8*a^4*b)+(8*a^3-8*a)*b^4
+       +(8*a^2-8*a^4)*b^3+(8*a^3-8*a^5)*b^2+(8*a^6-8*a^4)*b,
+  z^2+(8*a*b^2+8*a^2*b)*z+4*a^2*b^2*y+b*(8*a^3*b^4-16*a^4*b^3+8*a^5*b^2)
+     +b^2*((-4*a^2*b^4)+8*a^3*b^3-4*a^4*b^2)+(4*a^2-4*a^4)*b^4
+     +(8*a^5-8*a^3)*b^3+(4*a^4-4*a^6)*b^2],
+ [w,x,y,z]);
+[[w = 4,
+  x = 2*b^2+((-4*a)-6)*b+2*a^2-6*a,
+  y = (-2*b^3)+(2*a+2)*b^2+(2*a^2+8*a)*b-2*a^3+2*a^2,
+  z = 2*a*b^3+((-4*a^2)-2*a)*b^2+(2*a^3-2*a^2)*b],
+ [w = 4,
+  x = (-2*b^2)+(4*a-6)*b-2*a^2-6*a,
+  y = 2*b^3+(2-2*a)*b^2+(8*a-2*a^2)*b+2*a^3+2*a^2,
+  z = (-2*a*b^3)+(4*a^2-2*a)*b^2+((-2*a^3)-2*a^2)*b]];
+
+/* Eugene L. Allgower, Kurt Georg and Rick Miranda, The Method of
+   Resultants for Computing Real Solutions of Polynomial Systems, 
+   SIAM Journal on Numerical Analysis, Vol 29 No 3, Jun 1992, pp 831-844
+ */
+
+/* Example 1, p840, qe 12.  Robot arm coordinates.
+   Real solutions have y = +/- 1.6237 
+ */
+(p1:x^2*y^2+(2/q2)*x^2*y+(2/q2)*(1-b)*x*y^2+x^2+y^2-(2/q2)*(1+b)*x-(2/q2)*y+1,
+ p2:(1-b-q1)*x^2*y^2+(-1-b-q1)*x^2-4*x*y+(-1+b-q1)*y^2+(1+b-q1),
+ algsys(subst([b=1/2,q1=4/5,q2=2/5],[p1,p2]),[x,y]));
+[[x = %i,y = -%i],
+ [x = -%i,y = %i],
+ [x = %i,y = -3*%i],
+ [x = -%i,y = 3*%i],
+ [x =   (sqrt(319)+8)/17,  y = -(sqrt(29)/sqrt(11))],
+ [x = -((sqrt(319)-8)/17), y =   sqrt(29)/sqrt(11)]];
+float([%[5],%[6]]);
+[[x = 1.521210064675985, y = -1.623688281771977],
+ [x = -0.58003359408775, y =  1.623688281771977]];
+
+/* Example 2, p 841.  Intersection of a sphere with two paraboloids,
+   Two real solutions (not found by maxima 5.38.0)
+   y = z = (sqrt(5)-1)/2, x = +/- sqrt(z-y^2)
+ */
+algsys([x^2+y^2+z^2-1,z-x^2-y^2,y-x^2-z^2],[x,y,z]);
+[[x =  sqrt(2)*%i,         y =   (sqrt(5)-1)/2,  z = -((sqrt(5)+1)/2)],
+ [x =  sqrt(2)*%i,         y = -((sqrt(5)+1)/2), z =   (sqrt(5)-1)/2],
+ [x = -sqrt(2)*%i,         y =   (sqrt(5)-1)/2,  z = -((sqrt(5)+1)/2)],
+ [x = -sqrt(2)*%i,         y = -((sqrt(5)+1)/2), z =   (sqrt(5)-1)/2],
+ [x =  sqrt((-sqrt(5))-2), y = -((sqrt(5)+1)/2), z = -((sqrt(5)+1)/2)],
+ [x = -sqrt((-sqrt(5))-2), y = -((sqrt(5)+1)/2), z = -((sqrt(5)+1)/2)],
+ [x =  sqrt(sqrt(5)-2),    y =   (sqrt(5)-1)/2,  z =   (sqrt(5)-1)/2],
+ [x = -sqrt(sqrt(5)-2),    y =   (sqrt(5)-1)/2,  z =   (sqrt(5)-1)/2]];
+
+/* Two examples from the maxima mailing list 2016-10-15 */
+
+algsys(eqs:[x+2*y-z=6,2*x+y*z-z^2=-1,3*x-y+2*z^2=3],[x,y,z]);
+[[x = (27*sqrt(13)*%i-41)/14,
+  y = -((17*sqrt(13)*%i-87)/14),
+  z = -((sqrt(13)*%i-7)/2)],
+ [x = -((27*sqrt(13)*%i+41)/14),
+  y = (17*sqrt(13)*%i+87)/14,
+  z = (sqrt(13)*%i+7)/2],
+ [x = 1, y = 2, z = -1]];
+
+block([%rnum:0],
+  algsys(eqs:[b*c+a^2-1=0,b*d+a*b=0,c*d+a*c=0,d^2+b*c-1=0],[a,b,c,d]));
+[[a = -sqrt(1-%r1*%r2), b = %r1, c = %r2, d =  sqrt(1-%r1*%r2)],
+ [a =  sqrt(1-%r3*%r4), b = %r3, c = %r4, d = -sqrt(1-%r3*%r4)],
+ [a =  1, b = %r5, c = 0, d = -1],
+ [a = -1, b = %r6, c = 0, d =  1],
+ [a = -1, b = 0,   c = 0, d = -1],
+ [a =  1, b = 0,   c = 0, d =  1]];
+
+/* Example from Stavros Macrakis, maxima mailing list, 2017-07-31
+   Not solved by 5.38.0, solved by 5.39.0 */
+block([%rnum:0],
+ algsys(eqs:[b*c+a^2,b*d+a*b,c*d+a*c,d^2+b*c],[a,b,c,d]));
+[[a = -sqrt(-%r1*%r2), b = %r1, c = %r2, d =  sqrt(-%r1*%r2)],
+ [a =  sqrt(-%r3*%r4), b = %r3, c = %r4, d = -sqrt(-%r3*%r4)],
+ [a =  0,              b = %r5, c = 0,   d = 0]];
+
+
+/* SF bug 3321 - apparent regression from 5.38.1
+
+   In fact, correct solution depends on the signs of constants g and h.
+   Version 5.38.1 returns wrong solution when g>0 and h<0.
+   Would be better if algsys asked for signs, but ...
+ */
+
+eqs:[y-x=0, g*x*y-h=0, z+(x+1)/y-x-1=0];
+[y-x=0, g*x*y-h=0, z+(x+1)/y-x-1=0];
+
+(assume(h>0),0);
+0;
+s:algsys(eqs,[x,y,z]);
+[[x = sqrt(h)/sqrt(g),
+  y = sqrt(h)/sqrt(g),
+  z = (h-g)/(sqrt(g)*sqrt(h))],
+ [x = -(sqrt(h)/sqrt(g)),
+  y = -(sqrt(h)/sqrt(g)),
+  z = -((h-g)/(sqrt(g)*sqrt(h)))]];
+ratsimp(subst(s[1],eqs));
+[0=0, 0=0, 0=0];
+ratsimp(subst(s[2],eqs));
+[0=0, 0=0, 0=0];
+(forget(h>0),0);
+0;
+
+(assume(h<0),0);
+0;
+s:algsys(eqs,[x,y,z]);
+[[x = -((%i*sqrt(-h))/sqrt(g)),
+  y = -((%i*sqrt(-h))/sqrt(g)),
+  z = -((sqrt(-h)*(%i*h-%i*g))/(sqrt(g)*h))],
+ [x = (%i*sqrt(-h))/sqrt(g),
+  y = (%i*sqrt(-h))/sqrt(g),
+  z = (sqrt(-h)*(%i*h-%i*g))/(sqrt(g)*h)]];
+ratsimp(subst(s[1],eqs));
+[0=0, 0=0, 0=0];
+ratsimp(subst(s[2],eqs));
+[0=0, 0=0, 0=0];
+(forget(h<0),0);
+0;
+
+/* SF bug 3375.  Failure to calculate eigenvalues
+   Solution is ugly, so just check it contains %r1 */
+block([%rnum:0], s:algsys(eqs:[
+  y/10-(((-(sqrt(3)*%i)/2)-1/2)*((sqrt(37)*%i)/(8*3^(3/2))+1/8)^(1/3)
+   +((sqrt(3)*%i)/2-1/2)/(3*((sqrt(37)*%i)/(8*3^(3/2))+1/8)^(1/3)))*z,
+  x/20-(((-(sqrt(3)*%i)/2)-1/2)*((sqrt(37)*%i)/(8*3^(3/2))+1/8)^(1/3)
+   +((sqrt(3)*%i)/2-1/2)/(3*((sqrt(37)*%i)/(8*3^(3/2))+1/8)^(1/3)))*y,
+  50*z+20*y+((-((-(sqrt(3)*%i)/2)-1/2)*((sqrt(37)*%i)/(8*3^(3/2))+1/8)^(1/3))
+   -((sqrt(3)*%i)/2-1/2)/(3*((sqrt(37)*%i)/(8*3^(3/2))+1/8)^(1/3)))*x],
+  [x,y,z]),0);
+0;
+/* Solution of homogeneous eqns must have free parameter */ 
+freeof(%r1,s);
+false;
+
+(kill(eqt,eqs,F,G,p,p1,p2,s),done)$
 done;

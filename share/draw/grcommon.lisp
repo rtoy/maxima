@@ -1,6 +1,6 @@
 ;;;                 COPYRIGHT NOTICE
 ;;;  
-;;;  Copyright (C) 2007-2016 Mario Rodriguez Riotorto
+;;;  Copyright (C) 2007-2017 Mario Rodriguez Riotorto
 ;;;  
 ;;;  This program is free software; you can redistribute
 ;;;  it and/or modify it under the terms of the
@@ -38,7 +38,8 @@
 ;; Possible draw renderers:
 ;;      gnuplot_pipes (default)
 ;;      gnuplot
-;;      vtk
+;;      vtk or vtk6
+;;      vtk7
 (defvar $draw_renderer '$gnuplot_pipes)
 
 (defvar $draw_use_pngcairo nil "If true, use pngcairo terminal when png is requested.")
@@ -93,7 +94,6 @@
       (gethash '$fill_color *gr-options*)       "#ff0000" ; for filled regions
       (gethash '$fill_density *gr-options*)     0         ; in [0,1], only for object 'bars
 
-
       ; implicit plot options
       (gethash '$ip_grid *gr-options*)    '((mlist simp) 50 50)
       (gethash '$ip_grid_in *gr-options*) '((mlist simp) 5 5)
@@ -120,7 +120,7 @@
       (gethash '$ytics_secondary_axis *gr-options*)   nil
       (gethash '$ztics_axis *gr-options*)      nil
 
-      ; axis
+      ; axes
       (gethash '$axis_bottom *gr-options*) t
       (gethash '$axis_left *gr-options*)   t
       (gethash '$axis_top *gr-options*)    t
@@ -186,20 +186,22 @@
       (gethash '$transform *gr-options*) '$none
 
       ; 3d options
-      (gethash '$xu_grid *gr-options*)        30
-      (gethash '$yv_grid *gr-options*)        30
-      (gethash '$surface_hide *gr-options*)   nil
-      (gethash '$interpolate_color *gr-options*)   "depthorder"
-      (gethash '$enhanced3d *gr-options*)     '$none
-      (gethash '$isolines *gr-options*)       '$none
-      (gethash '$wired_surface *gr-options*)  nil
-      (gethash '$contour *gr-options*)        '$none  ; other options are: $base, $surface, $both and $map
-      (gethash '$contour_levels *gr-options*) 5       ; 1-50, [lowest_level,step,highest_level] or {z1,z2,...}
-      (gethash '$colorbox *gr-options*)       t       ; in pm3d mode, always show colorbox
-      (gethash '$palette  *gr-options*)       '$color ; '$color is a short cut for [7,5,15]
-                                                      ; and '$gray is a short cut for [3,3,3].
-                                                      ; See command 'show palette rgbformulae' in gnuplot.
-      (gethash '$capping *gr-options*)        '((mlist simp) nil nil)
+      (gethash '$xu_grid *gr-options*)           50
+      (gethash '$yv_grid *gr-options*)           50
+      (gethash '$surface_hide *gr-options*)      nil
+      (gethash '$interpolate_color *gr-options*) "depthorder"
+      (gethash '$enhanced3d *gr-options*)        '$none
+      (gethash '$isolines *gr-options*)          '$none
+      (gethash '$wired_surface *gr-options*)     nil
+      (gethash '$contour *gr-options*)           '$none ; other options are: $base, $surface, $both and $map
+      (gethash '$contour_levels *gr-options*)     5     ; 1-50, [lowest_level,step,highest_level] or {e1,e2,...}
+      (gethash '$isolines_levels *gr-options*)    10    ; 1-50, [lowest_level_fraction,step,highest_level_fraction],
+                                                        ; or {e1_fraction,e2_fraction,...}. Only for VTK.
+      (gethash '$colorbox *gr-options*)           t       ; in pm3d mode, always show colorbox
+      (gethash '$palette  *gr-options*)           '$color ; '$color is a short cut for [7,5,15]
+                                                          ; and '$gray is a short cut for [3,3,3].
+                                                          ; See command 'show palette rgbformulae' in gnuplot.
+      (gethash '$capping *gr-options*)            '((mlist simp) nil nil)
   ) )
 
 ;; Returns option value
@@ -880,6 +882,7 @@
       (gethash "darkblue" *color-table*) "#00008B" 
       (gethash "darkcyan" *color-table*) "#008B8B" 
       (gethash "darkmagenta" *color-table*) "#8B008B" 
+      (gethash "lightred" *color-table*) "#f03232" 
       (gethash "darkred" *color-table*) "#8B0000" 
       (gethash "lightgreen" *color-table*) "#90EE90")
 
@@ -956,7 +959,7 @@
 (defun update-terminal (val)
   (let ((terms '($screen $png $pngcairo $jpg $gif $eps $eps_color $canvas
                  $epslatex $epslatex_standalone $svg $x11 $qt
-                 $dumb $dumb_file $pdf $pdfcairo $wxt $animated_gif
+                 $dumb $dumb_file $pdf $pdfcairo $wxt $animated_gif $windows
                  $multipage_pdfcairo $multipage_pdf $multipage_eps 
                  $multipage_eps_color $aquaterm $tiff $vrml $obj $stl $pnm $ply)))
      (cond
@@ -967,7 +970,7 @@
                 *draw-terminal-number* ""))
        ((and ($listp val)
              (= ($length val) 2)
-             (member (cadr val) '($screen $wxt $aquaterm $qt))
+             (member (cadr val) '($screen $wxt $aquaterm $qt $windows))
              (integerp (caddr val))
              (>= (caddr val) 0))
           (setf (gethash '$terminal *gr-options*) (cadr val)
@@ -1149,8 +1152,8 @@
         (setf (gethash '$isolines *gr-options*) model
               *draw-isolines-type* 3
               *draw-isolines-fun* (coerce-float-fun
-                              ($first model)
-                              (list '(mlist) ($second model) ($third model) ($fourth model))))))
+                                    ($first model)
+                                    (list '(mlist) ($second model) ($third model) ($fourth model))))))
     ((and ($listp val)
           ($subsetp ($setify ($listofvars ($first val)))
                     ($setify ($rest val))))
@@ -1180,6 +1183,31 @@
              *draw-isolines-fun* nil))
     (t
         (merror "draw: illegal isolines definition")) ) )
+
+
+
+;; update contour (Gnuplot) and isolines (VTK) levels
+;; ---------------------------------------------------
+(defun update-contour-isolines (opt val)
+  (cond ((and (integerp val) (> val 0 ))
+          (setf (gethash opt *gr-options*) val))
+        ((and ($listp val) (= ($length val) 3) )
+           (let ((ini  ($float (nth 1 val)))
+                 (step ($float (nth 2 val)))
+                 (end  ($float (nth 3 val))))
+              (cond ((and (< ini end)
+                          (< step (- end ini)))
+                      (setf (gethash opt *gr-options*) (format nil "incremental ~a,~a,~a" ini step end)))
+                    (t
+                      (merror "draw: illegal contour level incremental description: ~M " val))) ))
+        ((and ($setp val) (not ($emptyp val)))
+           (let ((pts (map 'list #'$float (rest val)))
+                 (str "discrete ") )
+             (dolist (num pts 'done)
+               (setf str (concatenate 'string str " " (format nil "~a," num))))
+             (setf (gethash opt *gr-options*) (string-trim '(#\,) str) ) ))
+        (t
+          (merror "draw: unknown contour level description: ~M " val))))
 
 
 
@@ -1416,7 +1444,9 @@
          ($short_short_long_dashes (setf (gethash opt *gr-options*) 5))
          ($dot_dash                (setf (gethash opt *gr-options*) 6))
          ($tube                    (setf (gethash opt *gr-options*) -8))
-         (otherwise  (merror "draw: illegal line type: ~M" val) )))
+         (otherwise
+	  (if (numberp val)
+	      (setf (gethash opt *gr-options*) val) (merror "draw: illegal line type: ~M" val)))))
     ((and ($listp val)
           (= ($length val) 2)
           (equal ($first val) '$tube)
@@ -1524,26 +1554,8 @@
          (update-pointtype val))
       (($columns $nticks $adapt_depth $xu_grid $yv_grid $delay $x_voxel $y_voxel $z_voxel)
             (update-positive-integer opt val))
-      ($contour_levels    ; positive integer, increment or set of points
-            (cond ((and (integerp val) (> val 0 ))
-                    (setf (gethash opt *gr-options*) val))
-                  ((and ($listp val) (= ($length val) 3) )
-                     (let ((ini  ($float (nth 1 val)))
-                           (step ($float (nth 2 val)))
-                           (end  ($float (nth 3 val))))
-                        (cond ((and (< ini end)
-                                    (< step (- end ini)))
-                                (setf (gethash opt *gr-options*) (format nil "incremental ~a,~a,~a" ini step end)))
-                              (t
-                                (merror "draw: illegal contour level incremental description: ~M " val))) ))
-                  ((and ($setp val) (not ($emptyp val)))
-                     (let ((pts (map 'list #'$float (rest val)))
-                           (str "discrete ") )
-                       (dolist (num pts 'done)
-                         (setf str (concatenate 'string str " " (format nil "~a," num))))
-                       (setf (gethash opt *gr-options*) (string-trim '(#\,) str) ) ))
-                  (t
-                    (merror "draw: unknown contour level description: ~M " val))))
+      (($contour_levels $isolines_levels)   ; positive integer, increment or set
+         (update-contour-isolines opt val))
       ($opacity
          (update-opacity val))
       (($transparent $border $logx $logx_secondary $logy $logy_secondary
@@ -1622,7 +1634,7 @@
                 (setf (gethash opt *gr-options*) val)
                 (merror "draw: illegal head type for vectors: ~M" val)))
       ($contour ; defined as $none, $base, $surface, $both and $map
-            (if (member val '($base $surface $both $map))
+            (if (member val '($none $base $surface $both $map))
                 (setf (gethash opt *gr-options*) val)
                 (merror "draw: illegal contour allocation: ~M" val)))
       ($proportional_axes ; defined as $none, $xy and $xyz
@@ -1697,7 +1709,7 @@
 			      (< fval2 1))
                             (merror "grid: illegal grid lines specification"))
                          (t
-			   (setf (gethash opt *gr-options*) (list fval1 fval2)) )
+			   (setf (gethash opt *gr-options*) (list ($round fval1) ($round fval2))) )
 			 )  ))) )
       (($ip_grid $ip_grid_in)
        (if (not ($listp val))
@@ -1719,28 +1731,28 @@
 
       ; DEPRECATED OPTIONS
       ($tube_extremes
-        ($print "WARNING: 'tube_extremes' is deprecated, using 'capping' instead...")
+        ($print "Warning: 'tube_extremes' is deprecated, using 'capping' instead...")
         (update-capping (substitute nil '$open (substitute t '$closed val))))
       ($file_bgcolor
-        ($print "WARNING: 'file_bgcolor' is deprecated, using 'background_color' instead...")
+        ($print "Warning: 'file_bgcolor' is deprecated, using 'background_color' instead...")
         (update-color '$background_color val))
       ($rot_vertical
-        ($print "WARNING: 'rot_vertical' is deprecated, using 'view' instead...")
+        ($print "Warning: 'rot_vertical' is deprecated, using 'view' instead...")
         (update-view (list '(mlist) val (second (gethash '$view *gr-options*)))))
       ($rot_horizontal
-        ($print "WARNING: 'rot_horizontal' is deprecated, using 'view' instead...")
+        ($print "Warning: 'rot_horizontal' is deprecated, using 'view' instead...")
         (update-view (list '(mlist) (first (gethash '$view *gr-options*)) val)))
       ($pic_width
-        ($print "WARNING: 'pic_width' is deprecated, using 'dimensions' instead...")
+        ($print "Warning: 'pic_width' is deprecated, using 'dimensions' instead...")
         (update-dimensions (list '(mlist) val (second (gethash '$dimensions *gr-options*)))))
       ($pic_height
-        ($print "WARNING: 'pic_height' is deprecated, using 'dimensions' instead...")
+        ($print "Warning: 'pic_height' is deprecated, using 'dimensions' instead...")
         (update-dimensions (list '(mlist) (first (gethash '$dimensions *gr-options*)) val)))
       (($eps_width $pdf_width)
-        ($print "WARNING: 'eps_width' is deprecated, using 'dimensions' instead...")
+        ($print "Warning: 'eps_width' is deprecated, using 'dimensions' instead...")
         (update-dimensions (list '(mlist) (* 100 val) (second (gethash '$dimensions *gr-options*)))))
       (($eps_height $pdf_height)
-        ($print "WARNING: 'eps_height' is deprecated, using 'dimensions' instead...")
+        ($print "Warning: 'eps_height' is deprecated, using 'dimensions' instead...")
         (update-dimensions (list '(mlist) (first (gethash '$dimensions *gr-options*)) (* 100 val))))
 
       (otherwise (merror "draw: unknown option ~M " opt))  ) )
@@ -2166,10 +2178,9 @@
 ;;                            => png file with two plots (2d and 3d) side by side
 ;; See bellow for $draw2d and $draw3d
 (defun $draw (&rest args)
-  (cond ((or (equal $draw_renderer '$gnuplot)
-             (equal $draw_renderer '$gnuplot_pipes))
+  (cond ((member $draw_renderer '($gnuplot $gnuplot_pipes))
            (apply 'draw_gnuplot args))
-        ((equal $draw_renderer '$vtk)
+        ((member $draw_renderer '($vtk $vtk6 $vtk7))
            (apply 'draw_vtk args))
         (t
            (merror "draw: unknown renderer ~M" $draw_renderer))))
@@ -2180,10 +2191,9 @@
 
 ;; Equivalent to draw3d(opt & obj)
 (defun $draw3d (&rest args)
-  (cond ((or (equal $draw_renderer '$gnuplot)
-             (equal $draw_renderer '$gnuplot_pipes))
+  (cond ((member $draw_renderer '($gnuplot $gnuplot_pipes))
            (draw_gnuplot (cons '($gr3d) args)))
-        ((equal $draw_renderer '$vtk)
+        ((member $draw_renderer '($vtk $vtk6 $vtk7))
            (draw_vtk (cons '($gr3d) args)))
         (t
            (merror "draw: unknown renderer ~M" $draw_renderer))))

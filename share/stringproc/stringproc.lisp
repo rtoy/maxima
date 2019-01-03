@@ -48,7 +48,8 @@ See comments to $adjust_external_format below for a detailed description.
 ;;
 #-gcl (eval-when (:load-toplevel :execute)
   #+cmucl 
-    (unless (eq (stream-external-format *standard-output*) :utf-8) 
+    (unless (or (eq (stream-external-format *standard-input*) :utf-8) 
+                (eq (stream-external-format *standard-output*) :utf-8) ) 
       (stream:set-system-external-format :utf-8) )
   ;;
   #+ (and clisp (not unix))
@@ -150,11 +151,23 @@ See comments to $adjust_external_format below for a detailed description.
 (defun $opena (file &optional enc)
   #+gcl (declare (ignore enc))
   (unless (stringp file) (s-error1 "opena" "the"))
-  (open file
-        :direction :output
-        #-gcl :external-format #-gcl (get-encoding enc "opena")
-        :if-exists :append
-        :if-does-not-exist :create ))
+  #+gcl (open file :direction :output :if-exists :append :if-does-not-exist :create)
+  #-gcl (let (encoding-to-use inferred-encoding encoding-from-argument)
+          (declare (ignorable inferred-encoding encoding-from-argument))
+          (if enc
+            (setq encoding-to-use (setq encoding-from-argument (get-encoding enc "opena")))
+            (progn
+              (setq inferred-encoding (unicode-sniffer file))
+              (if inferred-encoding
+                (let ((checked-encoding (check-encoding inferred-encoding)))
+                  (when (null checked-encoding)
+                    (merror (intl:gettext "opena: inferred encoding ~M for file ~M is not recognized by this Lisp implementation.") inferred-encoding file))
+                  (when (eq checked-encoding 'unknown)
+                    (mtell (intl:gettext "opena: warning: I don't know how to verify encoding for this Lisp implementation."))
+                    (mtell (intl:gettext "opena: warning: go ahead with inferred encoding ~M and hope for the best.") inferred-encoding))
+                  (setq encoding-to-use inferred-encoding))
+                (setq encoding-to-use (setq encoding-from-argument (get-encoding enc "opena"))))))
+          (open file :direction :output :if-exists :append :if-does-not-exist :create :external-format encoding-to-use)))
 
 
 (defun $openr (file &optional enc) 
@@ -163,7 +176,27 @@ See comments to $adjust_external_format below for a detailed description.
   (unless (probe-file file)
     (gf-merror (intl:gettext "`openr': file does not exist: ~m") file) )
   #+gcl (open file)
-  #-gcl (open file :external-format (get-encoding enc "openr")) )
+  #-gcl (let (encoding-to-use inferred-encoding encoding-from-argument)
+          (declare (ignorable inferred-encoding encoding-from-argument))
+          (if enc
+            (setq encoding-to-use (setq encoding-from-argument (get-encoding enc "openr")))
+            (progn
+              (setq inferred-encoding (unicode-sniffer file))
+              (if inferred-encoding
+                (let ((checked-encoding (check-encoding inferred-encoding)))
+                  (when (null checked-encoding)
+                    (merror (intl:gettext "openr: inferred encoding ~M for file ~M is not recognized by this Lisp implementation.") inferred-encoding file))
+                  (when (eq checked-encoding 'unknown)
+                    (mtell (intl:gettext "openr: warning: I don't know how to verify encoding for this Lisp implementation."))
+                    (mtell (intl:gettext "openr: warning: go ahead with inferred encoding ~M and hope for the best.") inferred-encoding))
+                  (setq encoding-to-use inferred-encoding))
+                (setq encoding-to-use (setq encoding-from-argument (get-encoding enc "openr"))))))
+          (let ((s (open file :external-format encoding-to-use)))
+            (when (eql (peek-char nil s nil) #+clisp #\ZERO_WIDTH_NO-BREAK_SPACE 
+                                             #+(or abcl sbcl) #\UFEFF 
+                                             #-(or clisp abcl sbcl) #\U+FEFF)
+              (read-char s))
+            s)))
 
 
 (defun $make_string_input_stream (str &optional (start 1) (end nil)) ;; use 1-indexing
@@ -260,6 +293,10 @@ See comments to $adjust_external_format below for a detailed description.
       (unless (stringp enc) 
         (gf-merror (intl:gettext 
           "`~m': the optional second argument must be a string." ) name ))
+
+      ;; All Lisps must recognize :default, per CLHS.
+      (when (string= enc "DEFAULT") (return-from get-encoding :default))
+
       (setq enc (intern (string-upcase enc) :keyword))
       ;;
       #+ccl (progn
@@ -279,9 +316,10 @@ See comments to $adjust_external_format below for a detailed description.
                ef ))))
       ;;
       #+cmucl (progn
-        #+unix (let ((ef (stream-external-format *standard-output*))) ;; input format remains 'default'
+        #+unix (let ((ef (stream-external-format *standard-output*)) ;; input format remains 'default'
+                     (ef2 (stream-external-format *standard-input*)) ) ;; in test-batch input format is UTF-8
           (cond 
-            ((eq ef :utf-8) enc)
+            ((or (eq ef :utf-8) (eq ef2 :utf-8)) enc)
             (t (is-ignored enc name "to enable the encoding argument") 
                ef )))
         #-unix enc )
@@ -301,9 +339,9 @@ See comments to $adjust_external_format below for a detailed description.
       #- (or ccl clisp cmucl gcl sbcl) enc ) ;; ECL and others
       ;;
     (t ;; get encoding:
-      #+ (or ccl gcl) :utf-8 ;; ignored by GCL
+      #+ (or ecl ccl gcl) :utf-8 ;; ignored by GCL
       #+sbcl sb-impl::*default-external-format*
-      #- (or ccl gcl sbcl) (stream-external-format *standard-output*) )))
+      #- (or ecl ccl gcl sbcl) (stream-external-format *standard-output*) )))
                           ;; cmucl: format of *standard-input* remains 'default' when changed to utf-8
 
 (defun is-ignored (enc name adds)
@@ -366,9 +404,10 @@ SBCL(terminal) reads UCS-2LE and the input is UCS-2LE. Do nothing.
 
 SBCL(wxMaxima) reads cp1252 but the input is UTF-8. Adjustment needed. 
   Switch to UTF-8 via Lisp command in init file.
+  Update (Maxima 5.40.0): SBCL(wxMaxima) reads UTF-8 and the input is UTF-8. Do nothing.
 
-Observations based on Maxima 5.36.1(ccl), 5.37.2(clisp), 5.37.3(gcl), 5.37.2(sbcl)
-in Windows 7.
+Observations based on Maxima 5.36.1(ccl), 5.37.2/5.40.0(clisp), 5.37.3(gcl), 
+5.37.2/5.40.0(sbcl) in Windows 7.
 
 TODO: Comments on Xmaxima in Windows.
 |#
@@ -892,13 +931,17 @@ constituent, alphanumericp, alphacharp, digitcharp, lowercasep, uppercasep, char
     (s-error1 "simplode" "optional second") )
   (setq li (cdr li))
   (cond 
+    ((null li)
+      ($sconcat) )
+    ((null (cdr li))
+      ($sconcat (car li)) )
     ((string= ds "")
       (reduce #'$sconcat li) )
     (t
       (do (acc) (())
         (push ($sconcat (pop li)) acc)
         (when (null li)
-          (return (eval `(concatenate 'string ,@(nreverse acc)))) )
+          (return (reduce #'(lambda (s0 s1) (concatenate 'string s0 s1)) (nreverse acc) :initial-value "")))
         (push ds acc) ))))
 
 
@@ -938,7 +981,7 @@ constituent, alphanumericp, alphacharp, digitcharp, lowercasep, uppercasep, char
   (do ((ol (mapcar #'char-code (coerce str 'list)))
         ch m-chars )
       ((null ol) 
-        (eval `(concatenate 'string ,@m-chars)) )
+       (reduce #'(lambda (s0 s1) (concatenate 'string s0 s1)) m-chars :initial-value ""))
     (multiple-value-setq (ol ch) (rm-first-utf-8-char ol))
     (push (utf-8-m-char (length ch) ch) m-chars) ))
 
@@ -1118,7 +1161,7 @@ the optional second argument must be `clessp' or `cgreaterp'." ) alt )))
         "`ssort': optional second argument must be one of ~%clessp[ignore], cgreaterp[ignore]" ))))
   (setq test (stripdollar test))
   (let ((copy (copy-seq str)))
-    (if *parse-utf-8-input* (utf-8-ssort copy test) (sort copy test)) ))
+    (if *parse-utf-8-input* (utf-8-ssort copy test) (stable-sort copy test)) ))
 ;;
 (defun utf-8-ssort (str &optional (test 'clessp)) 
   (setq test 
@@ -1126,10 +1169,8 @@ the optional second argument must be `clessp' or `cgreaterp'." ) alt )))
   (do ((ol (coerce (string-to-raw-bytes str) 'list))
         utf8 code-pts ) 
       ((null ol) 
-        (eval 
-          `(concatenate 'string
-            ,@(mapcar #'(lambda (n) ($unicode n))
-                      (sort code-pts test) ))))
+       (let ((l (mapcar #'(lambda (n) ($unicode n)) (stable-sort code-pts test))))
+         (reduce #'(lambda (s0 s1) (concatenate 'string s0 s1)) l :initial-value "")))
     (multiple-value-setq (ol utf8) (rm-first-utf-8-char ol))
     (push (utf8-to-uc utf8) code-pts) ))
 

@@ -2140,7 +2140,7 @@ li[2](1);
 li[2](1/2);
 %pi^2/12 - log(2)^2/2;
 
-closeto(li[2](0.5) - (%pi^2/12 - log(2)^2/2), 1.1103e-16);
+closeto(li[2](0.5) - (%pi^2/12 - log(2)^2/2), 1.1103e-16), numer;
 true;
 
 closeto(li[2](2.0) - (%pi^2/4 - %i*%pi*log(2)), 2.513e-15), numer;
@@ -2327,8 +2327,8 @@ sign(2^(500000*t)-2^(500007*t));
 neg$
 sign(2^(500007*t)-2^(500000*t));
 pos$
-kill(t);
-done$
+forget(t>0);
+[t>0]$
 
 /* Bug #3246: Integrating u'(x) * f(u(x) + c) fails for f any inverse trigonometric/hyperbolic function */
 /* Also make sure that all the antiderivatives of (inverse) trigonometric/hyperbolic functions are correct. */
@@ -2340,3 +2340,265 @@ radcan(exponentialize(map(lambda([f], f(x) - diff(integrate(f(x), x), x)), [sin,
 /* Bug #3258: integrate's answer contains diff operator with negative order */
 freeof(diff, integrate(%e^(c*x-r^2/(4*x))/x^(3/2),x));
 true$
+
+/* Bug #3220: create_list doesn't bind variables properly */
+errcatch (create_list (%i, %i, [1, 2, 3]));
+[]$
+
+create_list (bfloat (1 - 10^-50) - 1, fpprec, [16, 100]);
+[0.0b0, -1.0b-50]$
+
+create_list (bfloat (3.14), fpprec, 1, 3);
+[3.0b0, 3.1b0, 3.14b0]$
+
+/* Bug #3356: sign(nz * nz) = nz */
+assume(apos > 0, aneg < 0, apz >= 0, anz <= 0, notequal(apn, 0), bpos > 0, bneg < 0, bpz >= 0, bnz <= 0, notequal(bpn, 0));
+[apos > 0, aneg < 0, apz >= 0, anz <= 0, notequal(apn, 0), bpos > 0, bneg < 0, bpz >= 0, bnz <= 0, notequal(bpn, 0)]$
+map('sign,
+	[
+		apos * bpos, apos * bneg, apos * bpz, apos * bnz, apos * bpn, apos * bpnz,
+		aneg * bpos, aneg * bneg, aneg * bpz, aneg * bnz, aneg * bpn, aneg * bpnz,
+		apz * bpos, apz * bneg, apz * bpz, apz * bnz, apz * bpn, apz * bpnz,
+		anz * bpos, anz * bneg, anz * bpz, anz * bnz, anz * bpn, anz * bpnz,
+		apn * bpos, apn * bneg, apn * bpz, apn * bnz, apn * bpn, apn * bpnz,
+		apnz * bpos, apnz * bneg, apnz * bpz, apnz * bnz, apnz * bpn, apnz * bpnz
+	]
+);
+[
+	'pos, 'neg, 'pz, 'nz, 'pn, 'pnz,
+	'neg, 'pos, 'nz, 'pz, 'pn, 'pnz,
+	'pz, 'nz, 'pz, 'nz, 'pnz, 'pnz,
+	'nz, 'pz, 'nz, 'pz, 'pnz, 'pnz,
+	'pn, 'pn, 'pnz, 'pnz, 'pn, 'pnz,
+	'pnz, 'pnz, 'pnz, 'pnz, 'pnz, 'pnz
+];
+forget(apos > 0, aneg < 0, apz >= 0, anz <= 0, notequal(apn, 0), bpos > 0, bneg < 0, bpz >= 0, bnz <= 0, notequal(bpn, 0));
+[apos > 0, aneg < 0, apz >= 0, anz <= 0, notequal(apn, 0), bpos > 0, bneg < 0, bpz >= 0, bnz <= 0, notequal(bpn, 0)]$
+
+/* test cases mentioned in bug report #3356 */
+
+(kill (a, b), assume(a<=0, b<=0), sign(a*b));
+pz;
+
+(kill (q, r), assume(q<0, r<0), sign(q*r));
+pos;
+
+sign(a*r);
+pz;
+
+sign(a*-2);
+pz;
+
+sign(a*q*r);
+nz;
+
+sign(a*b*q);
+nz;
+
+(forget (a <= 0, b <= 0, q < 0, r < 0), 0);
+0;
+
+/* Bug #3403: Function/lambda parameters declared constant cause error */
+declare(c, constant);
+done$
+emptyp(errcatch(f(c) := c));
+false$
+emptyp(errcatch(lambda([c], c)));
+false$
+emptyp(errcatch(f(%e) := %e));
+true$
+emptyp(errcatch(lambda([%e], %e)));
+true$
+kill(c, f);
+done$
+
+/*        Bug #3009: factoring exponentials causes MAKE-ARRAY error */
+/* a.k.a. Bug #3146: max() runs out of memory when comparing exponential functions */
+sign(((-1)-%e^-(4.075321792706671E-4*d_1))*%e^-(4.075321792706671E-4*d_2)+%e^-(8.150643585413342E-4*d_2)-%e^-(4.075321792706671E-4*d_1)+%e^-(8.150643585413342E-4*d_1)+1);
+pnz$
+factor(a^1000000+a+1);
+a^1000000+a+1$
+max(2.0325-6.9825*%e^-(492380.0*t),2.103-7.053*%e^-(406810.0*t));
+'max(2.0325-6.9825*%e^-(492380.0*t),2.103-7.053*%e^-(406810.0*t))$
+sign(exp(-492380*t)-2793);
+pnz$
+
+/* Bug #3147: sign of expressions with exponents crashes */
+assume(t>0);
+[t>0]$
+sign(2^(500005*t)-2^(500001*t));
+pos$
+kill(t);
+done$
+
+/* Test factor_max_degree. */
+block([factor_max_degree : 0], [factor(x^2+2*x+1), factor(x^2-1), factor(x^2+3*x+2), factor(x^2000+x^1999)]);
+[(x+1)^2, (x-1)*(x+1), (x+1)*(x+2), x^1999*(x+1)]$
+block([factor_max_degree : 1, factor_max_degree_print_warning : false], [factor(x^2+2*x+1), factor(x^2-1), factor(x^2+3*x+2), factor(x^2000+x^1999)]);
+[(x+1)^2, x^2-1, x^2+3*x+2, x^1999*(x+1)]$
+block([factor_max_degree : 2], [factor(x^2+2*x+1), factor(x^2-1), factor(x^2+3*x+2), factor(x^2000+x^1999)]);
+[(x+1)^2, (x-1)*(x+1), (x+1)*(x+2), x^1999*(x+1)]$
+
+/*        Bug #2928: Loops forever: ev(ratexpand(1/(x^(2/3)+1)), algebraic:true); */
+/* a.k.a. Bug #2994: Infinite loop: ratsimp(x/(sqrt(x^(2/3)+1)),x),algebraic; */
+/* a.k.a. Bug #3419: Endless loop in BPROG (rat(1/(x^(2/3)+1)), algebraic) */
+(test(expr) := is(radcan(ev(rat(expr), algebraic) - expr) = 0), done);
+done$
+test(1/(x^(1/3)+1));
+true$
+test(1/(x^(2/3)+1));
+true$
+test(1/((x-1)^(2/3)+1));
+true$
+test(x/(sqrt(x^(2/3)+1)));
+true$
+kill(expr);
+done$
+
+/* Bug #3431: error system variable holds unsimplified list, causing errors to be repeated when trying to access it */
+errcatch(0^0);
+[]$
+errcatch(print(error), true);
+[true]$
+
+/* SF bug #3458: "does not interpret addcol as it should but instead interprets same as addrow" */
+
+addcol (matrix (), [11, 22, 33]);
+matrix ([11], [22], [33]);
+
+/* additional tests for addcol and addrow */
+
+addcol (matrix (), [11, 22, 33], [111, 222, 333]);
+matrix ([11, 111], [22, 222], [33, 333]);
+
+addcol (matrix (), [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+matrix ([11, 111, 1111], [22, 222, 2222], [33, 333, 3333]);
+
+addcol (matrix ([1, 2, 3]), [11, 22, 33]);
+matrix ([1, 2, 3, 11, 22, 33]);
+
+addcol (matrix ([1, 2, 3]), [11, 22, 33], [111, 222, 333]);
+matrix ([1, 2, 3, 11, 22, 33, 111, 222, 333]);
+
+addcol (matrix ([1, 2, 3]), [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+matrix ([1, 2, 3, 11, 22, 33, 111, 222, 333, 1111, 2222, 3333]);
+
+addcol (matrix ([1], [2], [3]), [11, 22, 33]);
+matrix ([1, 11], [2, 22], [3, 33]);
+
+addcol (matrix ([1], [2], [3]), [11, 22, 33], [111, 222, 333]);
+matrix ([1, 11, 111], [2, 22, 222], [3, 33, 333]);
+
+addcol (matrix ([1], [2], [3]), [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+matrix ([1, 11, 111, 1111], [2, 22, 222, 2222], [3, 33, 333, 3333]);
+
+addrow (matrix (), [11, 22, 33]);
+matrix ([11, 22, 33]);
+
+addrow (matrix (), [11, 22, 33], [111, 222, 333]);
+matrix ([11, 22, 33], [111, 222, 333]);
+
+addrow (matrix (), [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+matrix ([11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+
+addrow (matrix ([1, 2, 3]), [11, 22, 33]);
+matrix ([1, 2, 3], [11, 22, 33]);
+
+addrow (matrix ([1, 2, 3]), [11, 22, 33], [111, 222, 333]);
+matrix ([1, 2, 3], [11, 22, 33], [111, 222, 333]);
+
+addrow (matrix ([1, 2, 3]), [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+matrix ([1, 2, 3], [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+
+/*
+ * Seems like these should succeed, but they fail
+ * with error about "incompatible structure", although similar calls succeed.
+ * Just omit these tests unless addrow/addcol are ever revised for greater consistency.
+ *
+addrow (matrix ([1], [2], [3]), [11, 22, 33]);
+matrix ([1], [2], [3], [11], [22], [33]);
+
+addrow (matrix ([1], [2], [3]), [11, 22, 33], [111, 222, 333]);
+matrix ([1], [2], [3], [11], [22], [33], [111], [222], [333]);
+
+addrow (matrix ([1], [2], [3]), [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+matrix ([1], [2], [3], [11], [22], [33], [111], [222], [333], [1111], [2222], [3333]);
+ *
+ */
+
+addcol (matrix (), matrix ([11], [22], [33]));
+matrix ([11], [22], [33]);
+
+addcol (matrix (), matrix ([11, 22, 33]));
+matrix ([11, 22, 33]);
+
+addcol (matrix (), matrix ([11], [22], [33]), matrix ([111], [222], [333]));
+matrix ([11, 111], [22, 222], [33, 333]);
+
+addcol (matrix (), matrix ([11, 22, 33]), matrix ([111, 222, 333]));
+matrix ([11, 22, 33, 111, 222, 333]);
+
+addcol (matrix (), matrix ([11], [22], [33]), matrix ([111], [222], [333]), matrix ([1111], [2222], [3333]));
+matrix ([11, 111, 1111], [22, 222, 2222], [33, 333, 3333]);
+
+addcol (matrix (), matrix ([11, 22, 33]), matrix ([111, 222, 333]), matrix ([1111, 2222, 3333]));
+matrix ([11, 22, 33, 111, 222, 333, 1111, 2222, 3333]);
+
+addcol (matrix ([1, 2, 3]), matrix ([11, 22, 33]));
+matrix ([1, 2, 3, 11, 22, 33]);
+
+addcol (matrix ([1, 2, 3]), matrix ([11, 22, 33]), matrix ([111, 222, 333]));
+matrix ([1, 2, 3, 11, 22, 33, 111, 222, 333]);
+
+addcol (matrix ([1, 2, 3]), matrix ([11, 22, 33]), matrix ([111, 222, 333]), matrix ([1111, 2222, 3333]));
+matrix ([1, 2, 3, 11, 22, 33, 111, 222, 333, 1111, 2222, 3333]);
+
+addrow (matrix (), matrix ([11], [22], [33]));
+matrix ([11], [22], [33]);
+
+addrow (matrix (), matrix ([11, 22, 33]));
+matrix ([11, 22, 33]);
+
+addrow (matrix (), matrix ([11], [22], [33]), matrix ([111], [222], [333]));
+matrix ([11], [22], [33], [111], [222], [333]);
+
+addrow (matrix (), matrix ([11, 22, 33]), matrix ([111, 222, 333]));
+matrix ([11, 22, 33], [111, 222, 333]);
+
+addrow (matrix (), matrix ([11], [22], [33]), matrix ([111], [222], [333]), matrix ([1111], [2222], [3333]));
+matrix ([11], [22], [33], [111], [222], [333], [1111], [2222], [3333]);
+
+addrow (matrix (), matrix ([11, 22, 33]), matrix ([111, 222, 333]), matrix ([1111, 2222, 3333]));
+matrix ([11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+
+addrow (matrix ([1, 2, 3]), [11, 22, 33]);
+matrix ([1, 2, 3], [11, 22, 33]);
+
+addrow (matrix ([1, 2, 3]), [11, 22, 33], [111, 222, 333]);
+matrix ([1, 2, 3], [11, 22, 33], [111, 222, 333]);
+
+addrow (matrix ([1, 2, 3]), [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+matrix ([1, 2, 3], [11, 22, 33], [111, 222, 333], [1111, 2222, 3333]);
+
+/* addrow/addcol that should fail */
+
+errcatch (addrow (matrix ([1], [2], [3]), [11, 22, 33]));
+[];
+
+/*
+ * Seems like these should fail, but they succeed.
+ * Just omit these tests unless addrow/addcol are ever revised for greater consistency.
+ *
+errcatch (addrow (matrix ([1], [2], [3]), matrix ([11, 22, 33])));
+[];
+
+errcatch (addrow (matrix ([1, 2, 3]), matrix ([1], [2], [3])));
+[];
+
+errcatch (addcol (matrix ([1, 2, 3]), matrix ([1], [2], [3])));
+[];
+
+errcatch (addcol (matrix ([1], [2], [3]), matrix ([11, 22, 33])));
+[];
+ *
+ */
