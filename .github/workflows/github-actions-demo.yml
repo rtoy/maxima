@@ -1,4 +1,4 @@
-name: GitHub Actions Continuous Integration
+name: GitHub Actions Demo
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
 jobs:
