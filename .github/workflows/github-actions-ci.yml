@@ -15,7 +15,7 @@ jobs:
       - name: Install Lisps
         run: |
           sudo apt-get update
-          sudo apt-get sbcl
+          sudo apt-get install sbcl
       - name: Build maxima
         run: |
           bootstrap
