@@ -18,7 +18,7 @@ jobs:
           sudo apt-get install sbcl
       - name: Build maxima
         run: |
-          bootstrap
+          ./bootstrap
           ./configure --enable-sbcl
           make
       - name: Run tests
