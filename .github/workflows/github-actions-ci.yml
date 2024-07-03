@@ -20,12 +20,12 @@ jobs:
           sudo apt-get install sbcl
       - name: Install ccl64
         run: |
-          wget https://github.com/Clozure/ccl/releases/download/v1.12.2/ccl-1.12.2-linuxx86.tar.gz
+          wget -nv https://github.com/Clozure/ccl/releases/download/v1.12.2/ccl-1.12.2-linuxx86.tar.gz
           tar xzf ccl-1.12.2-linuxx86.tar.gz
       - name: Build Maxima
         run: |
           ./bootstrap
-          ./configure --enable-sbcl --enable=ccl64 --with-ccl64=$PWD/ccl/lx86cl64
+          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64
           make
       - name: Run Tests
         run: make check
