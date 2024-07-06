@@ -36,13 +36,13 @@ jobs:
       - name: Run Tests
         run: make check || true
       - name: Archive test results
-        uses: actions/upload-artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: test-log
           path: |
             tests/test-suite.log
       - name: Archive user manual
-        uses: actions/upload-artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: maxima-docs
           path: |
