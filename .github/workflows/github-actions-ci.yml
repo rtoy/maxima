@@ -26,7 +26,7 @@ jobs:
       - name: Install cmucl
         run: |
           wget -nv https://common-lisp.net/project/cmucl/downloads/snapshots/2024/04/cmucl-2024-04-x86-linux.tar.bz2
-          tar xzf cmucl-2024-04-x86-linux.tar.bz2
+          tar xjf cmucl-2024-04-x86-linux.tar.bz2
       - name: Build Maxima
         run: |
           ./bootstrap
