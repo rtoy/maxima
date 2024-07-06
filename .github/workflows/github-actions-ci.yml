@@ -15,6 +15,7 @@ jobs:
       - name: Update OS
         run: |
           sudo apt-get update
+          sudo apt-get install gcc-multilib
       - name: Install sbcl
         run: |
           sudo apt-get install sbcl
@@ -22,10 +23,14 @@ jobs:
         run: |
           wget -nv https://github.com/Clozure/ccl/releases/download/v1.12.2/ccl-1.12.2-linuxx86.tar.gz
           tar xzf ccl-1.12.2-linuxx86.tar.gz
+      - name: Install cmucl
+        run: |
+          wget -nv https://common-lisp.net/project/cmucl/downloads/snapshots/2024/04/cmucl-2024-04-x86-linux.tar.bz2
+          tar xzf cmucl-2024-04-x86-linux.tar.bz2
       - name: Build Maxima
         run: |
           ./bootstrap
-          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64
+          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=bin/lisp
           make
       - name: Run Tests
         run: make check
