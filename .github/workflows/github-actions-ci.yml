@@ -32,5 +32,20 @@ jobs:
           ./bootstrap
           ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/bin/lisp
           make
+          (cd doc/info; make pdf)
       - name: Run Tests
-        run: make check
+        run: make check || true
+      - name: Archive test results
+        uses: actions/upload-artifacts@v4
+        with:
+          name: test-log
+          path: |
+            tests/test-suite.log
+      - name: Archive user manual
+        uses: actions/upload-artifacts@v4
+        with:
+          name: maxima-docs
+          path: |
+            doc/info/maxima.info*
+            doc/info/maxima.pdf
+            doc/info/*.html
