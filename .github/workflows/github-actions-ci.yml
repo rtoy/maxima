@@ -30,7 +30,7 @@ jobs:
       - name: Build Maxima
         run: |
           ./bootstrap
-          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=bin/lisp
+          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/bin/lisp
           make
       - name: Run Tests
         run: make check
