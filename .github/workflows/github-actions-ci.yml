@@ -47,18 +47,10 @@ jobs:
       - name: Build Maxima with ecl
         run: |
           make -C src ecl
-      - name: Run Tests
-        run: make -C tests check || true
-      - name: Archive test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-log
-          path: |
-            tests/*.log
+
+      # The user manual needs to be built before the tests are run
+      # because there a test for the user manual.
       - name: Build user manual
-        run: |
-          make -C doc/info
-      - name: Build user manual pdf
         run: |
           make -C doc/info pdf
       - name: Archive user manual
@@ -69,3 +61,11 @@ jobs:
             doc/info/maxima.info*
             doc/info/maxima.pdf
             doc/info/*.html
+      - name: Run Tests
+        run: make -C tests check || true
+      - name: Archive test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: |
+            tests/*.log
