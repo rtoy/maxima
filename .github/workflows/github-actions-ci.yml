@@ -54,7 +54,7 @@ jobs:
         with:
           name: test-log
           path: |
-            tests/test-suite.log
+            tests/*.log
       - name: Build user manual
         run: |
           make -C doc/info
