@@ -70,9 +70,10 @@ jobs:
       - name: Build Maxima with clisp
         run: |
           make -C src clisp
-      - name: Build Maxima with gcl
-        run: |
-          make -C src gcl
+      # Don't build with gcl because the version is too old.
+      #- name: Build Maxima with gcl
+      #  run: |
+      #    make -C src gcl
 
       # The user manual needs to be built before the tests are run
       # because there a test for the user manual.
