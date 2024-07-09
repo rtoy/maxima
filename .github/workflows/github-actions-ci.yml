@@ -3,7 +3,7 @@ run-name: ${{ github.actor }} is running CI 🚀
 on: [push]
 jobs:
   Continuous-Integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
@@ -47,14 +47,14 @@ jobs:
       # newer version or we have to obtain it in some other way or
       # build it ourselves.
 
-      #- name: Install gcl
-      #  run: |
-      #    sudo apt-get install gcl
+      - name: Install gcl
+        run: |
+          sudo apt-get install gcl
 
       - name: Configure Maxima
         run: |
           ./bootstrap
-          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-ecl --enable-clisp
+          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-ecl --enable-clisp --enable-gcl
       - name: Build Maxima with sbcl
         run: |
           make -C src sbcl
