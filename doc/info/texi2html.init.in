@@ -16,4 +16,3 @@ texinfo_set_from_init_file("EXTRA_HEAD",  q{<link rel="icon" href="figures/favic
 </script>
 }
 );
-
