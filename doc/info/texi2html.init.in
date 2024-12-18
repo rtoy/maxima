@@ -1,4 +1,4 @@
-texinfo_set_from_init_file("EXTRA_HEAD",  q{<link rel="icon" href="figures/favicon.ico">
+@TEXI_EXTRA_HEAD@ q{<link rel="icon" href="figures/favicon.ico">
 <!-- Select the theme to use for highlighting.  github looks pretty good for the examples
      in the manual -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css">
@@ -10,9 +10,9 @@ texinfo_set_from_init_file("EXTRA_HEAD",  q{<link rel="icon" href="figures/favic
 <script>
   hljs.configure({
       languages: ['Maxima'],
-      cssSelector: '.example-preformatted'
+      cssSelector: @HLJS_CSS_SELECTOR@
   });
   hljs.highlightAll();
 </script>
-}
-);
+@NEED_MATHJAX@}
+@TEXI_EXTRA_TAIL@;
