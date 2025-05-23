@@ -80,8 +80,8 @@ jobs:
         run: |
           make -C doc/info pdf
       - name: Archive user manual
-        uses: actions/upload-artifact@v4
-        # uses: actions/upload-pages-artifact
+        # uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
           name: maxima-docs
           path: |
@@ -96,3 +96,16 @@ jobs:
           name: test-log
           path: |
             tests/*.log
+  deploy:
+    needs: Continuous Integration
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+     runs-on: ubuntu-24.04
+    steps:
+      -name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
