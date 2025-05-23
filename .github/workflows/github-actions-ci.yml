@@ -90,9 +90,9 @@ jobs:
             doc/info/*.html
       - name: Run Tests
         run: make -C tests check || true
-      - name: Archive test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-log
-          path: |
-            tests/*.log
+#      - name: Archive test results
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: test-log
+#          path: |
+#            tests/*.log
