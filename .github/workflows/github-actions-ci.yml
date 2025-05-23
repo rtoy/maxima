@@ -82,6 +82,7 @@ jobs:
       - name: Archive user manual
         uses: actions/upload-artifact@v4
         # uses: actions/upload-pages-artifact@v3
+        # uses: actions/upload-pages-artifact
         with:
           name: maxima-docs
           path: |
@@ -90,7 +91,6 @@ jobs:
             - doc/info/*.html
       - name: Run Tests
         run: make -C tests check || true
-<<<<<<< HEAD
       - name: Archive test results
         uses: actions/upload-artifact@v4
         with:
@@ -110,18 +110,9 @@ jobs:
 #      -name: Deploy to GitHub Pages
 #      id: deployment
 #      uses: actions/deploy-pages@v4
-||||||| parent of 7faf14cc5 (Comment archiving of test results for now)
-      - name: Archive test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-log
-          path: |
-            tests/*.log
-=======
 #      - name: Archive test results
 #        uses: actions/upload-artifact@v4
 #        with:
 #          name: test-log
 #          path: |
 #            tests/*.log
->>>>>>> 7faf14cc5 (Comment archiving of test results for now)
