@@ -97,16 +97,16 @@ jobs:
           path: |
             tests/*.log
 
-  deploy:
-    needs: Continuous Integration
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-     runs-on: ubuntu-24.04
-    steps:
-      -name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages
+#  deploy:
+#    needs: Continuous Integration
+#    permissions:
+#      pages: write
+#      id-token: write
+#    environment:
+#      name: github-pages
+#      url: ${{ steps.deployment.outputs.page_url }}
+#     runs-on: ubuntu-24.04
+#    steps:
+#      -name: Deploy to GitHub Pages
+#      id: deployment
+#      uses: actions/deploy-pages
