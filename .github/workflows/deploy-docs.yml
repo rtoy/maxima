@@ -2,7 +2,7 @@ name: GitHub Actions Deploy
 run-name: ${{ github.actor }} is running Deploy CI 🚀
 on: [push]
 jobs:
-  Setup:
+  Deploy CI:
     runs-on: ubuntu-24.04
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
@@ -43,8 +43,8 @@ jobs:
           make -C doc/info
           make -C doc/info pdf
       - name: Archive user manual
-        uses: actions/upload-artifact@v4
-        # uses: actions/upload-pages-artifact@v3
+        # uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
           name: maxima-docs
           path: |
