@@ -2,7 +2,7 @@ name: GitHub Actions Deploy
 run-name: ${{ github.actor }} is running Deploy CI 🚀
 on: [push]
 jobs:
-  Deploy CI:
+  Deploy-CI:
     runs-on: ubuntu-24.04
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
