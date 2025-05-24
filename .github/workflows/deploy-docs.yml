@@ -31,6 +31,11 @@ jobs:
         run: |
           ./bootstrap
           ./configure --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp
+      # Need to build maxima so we can build the index.  Without this
+      # we fail to build the docs.
+      - name: Build Maxima with cmucl
+        run: |
+          make -C src cmucl
       # The user manual needs to be built before the tests are run
       # because there a test for the user manual.
       - name: Build user manual
