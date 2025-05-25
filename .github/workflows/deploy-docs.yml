@@ -30,7 +30,7 @@ jobs:
       - name: Configure Maxima
         run: |
           ./bootstrap
-          ./configure --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp
+          ./configure --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-lang-de --enable-lang-es --enable-lang-pt --enable-lang-pt_BR --enable-lang-ja
       # Need to build maxima so we can build the index.  Without this
       # we fail to build the docs.
       - name: Build Maxima with cmucl
@@ -39,13 +39,28 @@ jobs:
       # The user manual needs to be built before the tests are run
       # because there a test for the user manual.
       - name: Build user manual
+        # Don't do "make pdf" because that descends the lang
+        # directories and pdf doesn't work in some of them.  Thus,
+        # just change to each directory and run make appropriately.
+        # The Russian docs don't currently work
         run: |
-          make -C doc/info
-          make -C doc/info pdf
+          make -C doc/info html maxima.pdf
+          make -C doc/info/de html pdf
+          make -C doc/info/es html pdf
+          make -C doc/info/pt html pdf
+          make -C doc/info/pt_BR html pdf
+          make -C doc/info/ja html
+          
       - name:  Copy docs
         run: |
           mkdir _site/docs || true
+          mkdir _site/docs/de _site/docs/es _site/docs/pt _site/docs/pt_BR _site/docs/ja || true
           cp doc/info/maxima.info* doc/info/maxima.pdf doc/info/*.html _site/docs
+          cp doc/info/de/*.html doc/info/de/maxima.pdf _site/docs/de
+          cp doc/info/es/*.html doc/info/es/maxima.pdf _site/docs/es
+          cp doc/info/pt/*.html doc/info/pt/maxima.pdf _site/docs/pt
+          cp doc/info/pt_BR/*.html doc/info/pt_BR/maxima.pdf _site/docs/pt_BR
+          cp doc/info/ja/*.html _site/docs/ja
       - name: Archive user manual
         # uses: actions/upload-artifact@v4
         uses: actions/upload-pages-artifact@v3
