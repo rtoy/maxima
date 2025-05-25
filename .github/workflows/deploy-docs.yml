@@ -47,7 +47,4 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           name: maxima-docs
-          path: |
-            doc/info/maxima.info*
-            doc/info/maxima.pdf
-            doc/info/*.html
+          path: doc/info/maxima.info* doc/info/maxima.pdf doc/info/*.html
