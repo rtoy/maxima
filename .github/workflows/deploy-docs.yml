@@ -2,7 +2,7 @@ name: GitHub Actions Deploy
 run-name: ${{ github.actor }} is running Deploy CI 🚀
 on: [push]
 jobs:
-  Deploy-CI:
+  build-docs:
     runs-on: ubuntu-24.04
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
@@ -53,15 +53,13 @@ jobs:
         with:
           name: maxima-docs
   deploy:
-    permissions:
-      pages: write
-      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-     runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04
+    needs: build-docs
     steps:
-      -name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
   
