@@ -54,7 +54,9 @@ jobs:
         # just change to each directory and run make appropriately.
         # The Russian docs don't currently work
         run: |
-          make -C doc/info html maxima.pdf
+          make -C doc/info
+          make -C doc/info maxima.pdf
+          cp doc/info/maxima.info* doc/info/*.html doc/info/maxima.pdf _site/docs
       - name: Build German manual
         run: |
           make -C doc/info/de
