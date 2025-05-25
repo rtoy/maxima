@@ -6,8 +6,6 @@ on:
     paths:
       - 'doc/info/**'
   workflow_dispatch:
-    paths:
-      - 'doc/info/**'
     
 jobs:
   build-docs:
