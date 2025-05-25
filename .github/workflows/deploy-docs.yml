@@ -49,7 +49,7 @@ jobs:
         # The Russian docs don't currently work
         run: |
           make -C doc/info html maxima.pdf
-     - name: Build German manual
+      - name: Build German manual
         run: |
           make -C doc/info/de
           make -C doc/info/de pdf
