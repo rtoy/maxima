@@ -36,6 +36,10 @@ jobs:
       - name: Build Maxima with cmucl
         run: |
           make -C src cmucl
+      - name: Setup directories
+        run: |
+          mkdir _site/docs || true
+          mkdir _site/docs/de _site/docs/es _site/docs/pt _site/docs/pt_BR _site/docs/ja || true
       # The user manual needs to be built before the tests are run
       # because there a test for the user manual.
       - name: Build English manual
@@ -45,42 +49,25 @@ jobs:
         # The Russian docs don't currently work
         run: |
           make -C doc/info html maxima.pdf
-      - name: Build German manual
-        run: |
-          make -C doc/info/de html pdf
+#     - name: Build German manual
+#        run: |
+#          make -C doc/info/de html pdf
+#          cp doc/info/de/*.html doc/info/de/maxima.pdf _site/docs/de
       - name: Build Spanish manual
         run: |
           make -C doc/info/es html pdf
+          cp doc/info/es/*.html doc/info/es/maxima.pdf _site/docs/es
       - name: Build Portguese manual
         run: |
           make -C doc/info/pt html pdf
+          cp doc/info/pt/*.html doc/info/pt/maxima.pdf _site/docs/pt
       - name: Build Brazilian Portguese manual
         run: |
           make -C doc/info/pt_BR html pdf
+          cp doc/info/pt_BR/*.html doc/info/pt_BR/maxima.pdf _site/docs/pt_BR
       - name: Build Japanese manual
         run: |
           make -C doc/info/ja html
-      - name: Setup directories
-        run: |
-          mkdir _site/docs || true
-          mkdir _site/docs/de _site/docs/es _site/docs/pt _site/docs/pt_BR _site/docs/ja || true
-      - name: Copy English manual
-        run: |
-          cp doc/info/maxima.info* doc/info/maxima.pdf doc/info/*.html _site/docs
-      - name: Copy German manual
-        run: |
-          cp doc/info/de/*.html doc/info/de/maxima.pdf _site/docs/de
-      - name: Copy Spanish manual
-        run: |
-          cp doc/info/es/*.html doc/info/es/maxima.pdf _site/docs/es
-      - name: Copy Portguese manual
-        run: |
-          cp doc/info/pt/*.html doc/info/pt/maxima.pdf _site/docs/pt
-      - name: Copy Brazilian Portguese manual
-        run: |
-          cp doc/info/pt_BR/*.html doc/info/pt_BR/maxima.pdf _site/docs/pt_BR
-      - name: Copy Japanese manual
-        run: |
           cp doc/info/ja/*.html _site/docs/ja
       - name: Archive user manual
         # uses: actions/upload-artifact@v4
