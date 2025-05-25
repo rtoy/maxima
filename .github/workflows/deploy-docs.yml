@@ -44,7 +44,7 @@ jobs:
           make -C doc/info pdf
       - name:  Copy docs
         run: |
-          mkdir docs || true
+          mkdir _site/docs || true
           cp doc/info/maxima.info* doc/info/maxima.pdf doc/info/*.html _site/docs
       - name: Archive user manual
         # uses: actions/upload-artifact@v4
