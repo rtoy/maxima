@@ -61,15 +61,17 @@ jobs:
           cp doc/info/es/*.html doc/info/es/maxima.pdf _site/docs/es
       - name: Build Portguese manual
         run: |
-          make -C doc/info/pt html pdf
+          make -C doc/info/pt
+          make -C doc/info/pt pdf
           cp doc/info/pt/*.html doc/info/pt/maxima.pdf _site/docs/pt
       - name: Build Brazilian Portguese manual
         run: |
-          make -C doc/info/pt_BR html pdf
+          make -C doc/info/pt_BR
+          make -C doc/info/pt_BR pdf
           cp doc/info/pt_BR/*.html doc/info/pt_BR/maxima.pdf _site/docs/pt_BR
       - name: Build Japanese manual
         run: |
-          make -C doc/info/ja html
+          make -C doc/info/ja
           cp doc/info/ja/*.html _site/docs/ja
       - name: Archive user manual
         # uses: actions/upload-artifact@v4
