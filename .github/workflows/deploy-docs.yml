@@ -49,13 +49,15 @@ jobs:
         # The Russian docs don't currently work
         run: |
           make -C doc/info html maxima.pdf
-#     - name: Build German manual
-#        run: |
-#          make -C doc/info/de html pdf
-#          cp doc/info/de/*.html doc/info/de/maxima.pdf _site/docs/de
+     - name: Build German manual
+        run: |
+          make -C doc/info/de
+          make -C doc/info/de pdf
+          cp doc/info/de/*.html doc/info/de/maxima.pdf _site/docs/de
       - name: Build Spanish manual
         run: |
-          make -C doc/info/es html pdf
+          make -C doc/info/es
+          make -C doc/info/es pdf
           cp doc/info/es/*.html doc/info/es/maxima.pdf _site/docs/es
       - name: Build Portguese manual
         run: |
