@@ -1,0 +1,98 @@
+name: GitHub Actions Continuous Integration
+run-name: ${{ github.actor }} is running CI 🚀
+on: [push]
+jobs:
+  Continuous-Integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+      - name: Update OS and get tools
+        run: |
+          sudo apt-get update
+          # Cmucl needs 32-bit libs to run
+          sudo apt-get install gcc-multilib
+          # texlive for latex so we can build the pdf manual.
+          # texlive-plain-generic to get epsf.sty that's needed by the
+          # manual.
+          sudo apt-get install texlive texlive-plain-generic
+      - name: Install sbcl
+        run: |
+          sudo apt-get install sbcl
+      - name: Install ccl64
+        # ccl64 is installed to the ccl in current directory.
+        run: |
+          wget -nv https://github.com/Clozure/ccl/releases/download/v1.12.2/ccl-1.12.2-linuxx86.tar.gz
+          tar xzf ccl-1.12.2-linuxx86.tar.gz
+      - name: Install cmucl
+        # cmucl is installed cmucl in the current directory
+        run: |
+          wget -nv https://common-lisp.net/project/cmucl/downloads/snapshots/2024/04/cmucl-2024-04-x86-linux.tar.bz2
+          mkdir cmucl 
+          tar -C cmucl -xjf cmucl-2024-04-x86-linux.tar.bz2
+      - name: Install ecl
+        run: |
+          sudo apt-get install ecl
+      - name: Install clisp
+        run: |
+          sudo apt-get install clisp
+
+      # This version of gcl (2.6.12) is too old.  Maxima needs at
+      # least 2.6.13.  We either need to wait until apt-get has a
+      # newer version or we have to obtain it in some other way or
+      # build it ourselves.
+
+      - name: Install gcl
+        run: |
+          sudo apt-get install gcl
+
+      - name: Configure Maxima
+        run: |
+          ./bootstrap
+          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-ecl --enable-clisp --enable-gcl
+      - name: Build Maxima with sbcl
+        run: |
+          make -C src sbcl
+      - name: Build Maxima with ccl64
+        run: |
+          make -C src ccl64
+      - name: Build Maxima with cmucl
+        run: |
+          make -C src cmucl
+      - name: Build Maxima with ecl
+        run: |
+          make -C src ecl
+      - name: Build Maxima with clisp
+        run: |
+          make -C src clisp
+      - name: Build Maxima with gcl
+        run: |
+          make -C src gcl
+
+      # The user manual needs to be built before the tests are run
+      # because there a test for the user manual.
+      - name: Build user manual
+        run: |
+          make -C doc/info pdf
+      - name: Archive user manual
+        # uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact
+        with:
+          name: maxima-docs
+          path: |
+            doc/info/maxima.info*
+            doc/info/maxima.pdf
+            doc/info/*.html
+      - name: Run Tests
+        run: make -C tests check || true
+      - name: Archive test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: |
+            tests/*.log
