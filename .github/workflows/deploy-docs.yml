@@ -49,29 +49,25 @@ jobs:
         # The Russian docs don't currently work
         run: |
           make -C doc/info html maxima.pdf
-     - name: Build German manual
-        run: |
-          make -C doc/info/de
-          make -C doc/info/de pdf
-          cp doc/info/*.html doc/info/de/maxima.pdf _site/docs/de
+#     - name: Build German manual
+#        run: |
+#          make -C doc/info/de html pdf
+#          cp doc/info/de/*.html doc/info/de/maxima.pdf _site/docs/de
       - name: Build Spanish manual
-        # Pdf version doesn't work?
         run: |
-          make -C doc/info/es
-          cp doc/info/es/*.html _site/docs/es
+          make -C doc/info/es html pdf
+          cp doc/info/es/*.html doc/info/es/maxima.pdf _site/docs/es
       - name: Build Portguese manual
         run: |
-          make -C doc/info/pt
-          make -C doc/info/pt pdf
+          make -C doc/info/pt html pdf
           cp doc/info/pt/*.html doc/info/pt/maxima.pdf _site/docs/pt
       - name: Build Brazilian Portguese manual
         run: |
-          make -C doc/info/pt_BR
-          make -C doc/info/pt_BR pdf
+          make -C doc/info/pt_BR html pdf
           cp doc/info/pt_BR/*.html doc/info/pt_BR/maxima.pdf _site/docs/pt_BR
       - name: Build Japanese manual
         run: |
-          make -C doc/info/ja
+          make -C doc/info/ja html
           cp doc/info/ja/*.html _site/docs/ja
       - name: Archive user manual
         # uses: actions/upload-artifact@v4
