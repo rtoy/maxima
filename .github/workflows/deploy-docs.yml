@@ -48,10 +48,8 @@ jobs:
           mkdir _site
           cp doc/info/maxima.info* doc/info/maxima.pdf doc/info/*.html _site
       - name: Archive user manual
-        uses: actions/upload-artifact@v4
-        # uses: actions/upload-pages-artifact@v3
-        with:
-          name: maxima-docs
+        # uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
   deploy:
     environment:
       name: github-pages
