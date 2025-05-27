@@ -78,6 +78,7 @@ jobs:
       # because there a test for the user manual.
       - name: Build user manual
         run: |
+          make -C doc/info
           make -C doc/info pdf
           ls doc/info/
       - name: Archive user manual
