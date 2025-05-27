@@ -71,8 +71,9 @@ jobs:
         run: |
           make -C src clisp
       - name: Build Maxima with gcl
+        # Make sure we use the ANSI version of gcl.
         run: |
-          make -C src gcl
+          GCL_ANSI=t make -C src gcl
 
       # The user manual needs to be built before the tests are run
       # because there a test for the user manual.
