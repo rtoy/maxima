@@ -87,9 +87,9 @@ jobs:
         with:
           name: maxima-docs
           path: |
-            - doc/info/maxima.info*
-            - doc/info/maxima.pdf
-            - doc/info/*.html
+            doc/info/maxima.info*
+            doc/info/maxima.pdf
+            doc/info/*.html
       - name: Run Tests
         run: |
           make -C tests check || true
@@ -99,7 +99,7 @@ jobs:
         with:
           name: test-log
           path: |
-            - tests/*.log
+            tests/*.log
 #  deploy:
 #    needs: Continuous Integration
 #    permissions:
