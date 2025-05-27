@@ -79,6 +79,7 @@ jobs:
       - name: Build user manual
         run: |
           make -C doc/info pdf
+          ls doc/info/maxima.info* doc/info/maxima/pdf doc/info/*.html
       - name: Archive user manual
         uses: actions/upload-artifact@v4
         # uses: actions/upload-pages-artifact@v3
@@ -91,7 +92,9 @@ jobs:
             - doc/info/maxima.pdf
             - doc/info/*.html
       - name: Run Tests
-        run: make -C tests check || true
+        run: |
+          make -C tests check || true
+          ls tests/*.log
       - name: Archive test results
         uses: actions/upload-artifact@v4
         with:
