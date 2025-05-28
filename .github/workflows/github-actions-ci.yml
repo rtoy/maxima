@@ -81,7 +81,6 @@ jobs:
         run: |
           make -C doc/info
           make -C doc/info pdf
-          ls doc/info/
       - name: Archive user manual
         uses: actions/upload-artifact@v4
         # uses: actions/upload-pages-artifact@v3
@@ -94,7 +93,6 @@ jobs:
       - name: Run Tests
         run: |
           make -C tests check || true
-          ls tests/
       - name: Archive test results
         uses: actions/upload-artifact@v4
         with:
