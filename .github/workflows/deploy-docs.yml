@@ -45,7 +45,7 @@ jobs:
       - name: Setup directories
         run: |
           mkdir _site/docs || true
-          mkdir _site/docs/de _site/docs/es _site/docs/pt _site/docs/pt_BR _site/docs/ja || true
+          mkdir _site/docs/de _site/docs/es _site/docs/pt _site/docs/pt_BR _site/docs/ja _site/docs/figures || true
       # The user manual needs to be built before the tests are run
       # because there a test for the user manual.
       - name: Build English manual
@@ -57,30 +57,41 @@ jobs:
           make -C doc/info
           make -C doc/info maxima.pdf
           cp doc/info/maxima.info* doc/info/*.html doc/info/maxima.pdf _site/docs
+          cp doc/info/figures/* _site/docs/figures
       - name: Build German manual
         run: |
           make -C doc/info/de
           make -C doc/info/de pdf
           cp doc/info/de/*.html doc/info/de/maxima.pdf _site/docs/de
+          mkdir _site/docs/de/figures || true
+          cp doc/info/figures/* _site/docs/de/figures
       - name: Build Spanish manual
         run: |
           make -C doc/info/es
           make -C doc/info/es pdf
           cp doc/info/es/*.html doc/info/es/maxima.pdf _site/docs/es
+          mkdir _site/docs/es/figures || true
+          cp doc/info/figures/* _site/docs/es/figures
       - name: Build Portguese manual
         run: |
           make -C doc/info/pt
           make -C doc/info/pt pdf
           cp doc/info/pt/*.html doc/info/pt/maxima.pdf _site/docs/pt
+          mkdir _site/docs/pt/figures || true
+          cp doc/info/figures/* _site/docs/pt/figures
       - name: Build Brazilian Portguese manual
         run: |
           make -C doc/info/pt_BR
           make -C doc/info/pt_BR pdf
           cp doc/info/pt_BR/*.html doc/info/pt_BR/maxima.pdf _site/docs/pt_BR
+          mkdir _site/docs/pt_BR/figures || true
+          cp doc/info/figures/* _site/docs/pt_BR/figures
       - name: Build Japanese manual
         run: |
           make -C doc/info/ja
           cp doc/info/ja/*.html _site/docs/ja
+          mkdir _site/docs/ja/figures || true
+          cp doc/info/figures/* _site/docs/ja/figures
       - name: Archive user manual
         # uses: actions/upload-artifact@v4
         uses: actions/upload-pages-artifact@v3

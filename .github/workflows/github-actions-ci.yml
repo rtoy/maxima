@@ -54,7 +54,7 @@ jobs:
       - name: Configure Maxima
         run: |
           ./bootstrap
-          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-ecl --enable-clisp --enable-gcl
+          ./configure --enable-sbcl --enable-ccl64 --with-ccl64=$PWD/ccl/lx86cl64 --enable-cmucl --with-cmucl=$PWD/cmucl/bin/lisp --enable-ecl --enable-clisp --enable-gcl --with-gcl=gcl
       - name: Build Maxima with sbcl
         run: |
           make -C src sbcl
@@ -71,31 +71,36 @@ jobs:
         run: |
           make -C src clisp
       - name: Build Maxima with gcl
+        # Make sure we use the ANSI version of gcl.
         run: |
-          make -C src gcl
+          GCL_ANSI=t make -C src gcl
 
       # The user manual needs to be built before the tests are run
       # because there a test for the user manual.
       - name: Build user manual
         run: |
+          make -C doc/info
           make -C doc/info pdf
       - name: Archive user manual
         uses: actions/upload-artifact@v4
         # uses: actions/upload-pages-artifact@v3
+        # uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
           name: maxima-docs
           path: |
-            - doc/info/maxima.info*
-            - doc/info/maxima.pdf
-            - doc/info/*.html
+            doc/info/maxima.info*
+            doc/info/maxima.pdf
+            doc/info/*.html
       - name: Run Tests
-        run: make -C tests check || true
+        run: |
+          make -C tests check || true
       - name: Archive test results
         uses: actions/upload-artifact@v4
         with:
           name: test-log
           path: |
-            - tests/*.log
+            tests/*.log
 #  deploy:
 #    needs: Continuous Integration
 #    permissions:
@@ -109,3 +114,9 @@ jobs:
 #      -name: Deploy to GitHub Pages
 #      id: deployment
 #      uses: actions/deploy-pages@v4
+#      - name: Archive test results
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: test-log
+#          path: |
+#            tests/*.log
