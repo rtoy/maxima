@@ -8,7 +8,7 @@ dnl Note: during Lisp-based builds (see INSTALL.lisp) the version
 dnl number is read from the following AC_INIT line.  It's sensitive to
 dnl whitespace so when updating the version number only make changes
 dnl within the second pair of square brackets.
-AC_INIT([maxima], [5.47post])
+AC_INIT([maxima], [5.48post])
 AC_CONFIG_SRCDIR([src/macsys.lisp])
 AM_INIT_AUTOMAKE([-Wno-portability tar-ustar])
 
@@ -655,6 +655,14 @@ AC_ARG_ENABLE(build-docs,
 	 esac],
 	 [enable_build_docs=true])
 
+AC_ARG_ENABLE(syntax-highlighting,
+	[  --enable-syntax-highlighting Enable syntax highlighting for the HTML manual],
+        [case "${enableval}" in
+        	yes) syntax_highlight=true ;;
+                no)  syntax_highlight=false ;;
+                *) AC_MSG_ERROR(bad value ${enableval} for --syntax-highlighting) ;;
+	 esac],
+        [syntax_highlight=false])
 
 AM_CONDITIONAL(ENABLE_BUILD_DOCS, test x$enable_build_docs = xtrue)
 
@@ -725,9 +733,17 @@ if test x"${enable_build_docs}" = xtrue ; then
            HLJS_CSS_SELECTOR="'.example-preformatted'"
            TEXI_EXTRA_TAIL=')'
         fi
+        if test x${syntax_highlight} = xtrue; then
+	   HIGHLIGHT1='<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css"> <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/maxima.min.js"> </script>
+'
+	   HIGHLIGHT2="<script> hljs.configure({languages: [['Maxima']], cssSelector: ${HLJS_CSS_SELECTOR}}); hljs.highlightAll(); </script>
+"
+        fi
         AC_SUBST(TEXI_EXTRA_HEAD)
-        AC_SUBST(HLJS_CSS_SELECTOR)
+        dnl AC_SUBST(HLJS_CSS_SELECTOR)
         AC_SUBST(TEXI_EXTRA_TAIL)
+	AC_SUBST(HIGHLIGHT1)
+        AC_SUBST(HIGHLIGHT2)
         TEXI2HTML=texi2html.init
         AC_SUBST(TEXI2HTML)
 
@@ -1313,6 +1329,7 @@ AC_ARG_WITH(emacs-prefix,
 	[EMACSDIR="${datarootdir}/emacs/site-lisp"])
 AC_SUBST(EMACSDIR)
 
+
 dnl Tell defsystem that this isn't a lisp-only build
 lisp_only_build="nil"
 AC_SUBST(lisp_only_build)
@@ -1506,4 +1523,8 @@ if test x"${xmaxima_exe}" = xtrue ; then
    if test x${xmaxima_exe_prerequisite} = xnotfound ; then
      AC_MSG_WARN([A prerequisite for xmaxima.exe not found.  The missing components can be defined on the make command line.])
    fi
+fi
+
+if test -n "x$MAKEINFO"; then
+  echo "Using makeinfo ${MAKEINFO} to generate docs"
 fi
