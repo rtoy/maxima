@@ -656,13 +656,24 @@ AC_ARG_ENABLE(build-docs,
 	 [enable_build_docs=true])
 
 AC_ARG_ENABLE(syntax-highlighting,
-	[  --enable-syntax-highlighting Enable syntax highlighting for the HTML manual],
-        [case "${enableval}" in
-        	yes) syntax_highlight=true ;;
-                no)  syntax_highlight=false ;;
-                *) AC_MSG_ERROR(bad value ${enableval} for --syntax-highlighting) ;;
-	 esac],
-        [syntax_highlight=false])
+  [AS_HELP_STRING([--enable-syntax-highlighting],
+    [Enable syntax highlighting for the HTML manual (default = no).
+       Set to "highlightjs" to use highlightjs or "pygments" to use pygments.  No value implies highlightjs])],
+  [case "${enableval}" in
+          yes|highlightjs) syntax_highlighting=highlightjs ;;
+          pygments) syntax_highlighting=pygments ;;
+          no)  syntax_highlighting=false ;;
+          *) AC_MSG_ERROR(bad value ${enableval} for --enable-syntax-highlighting) ;;
+   esac],
+  [syntax_highlighting=false])
+
+AS_IF([test "x$syntax_highlighting" = "xpygments"],
+  [AC_CHECK_PROG([pygmentize_found], [pygmentize],
+    true,
+    false)
+    AS_IF([test "x$pygmetize_found" = "xfalse"],
+      AC_MSG_FAILURE(
+        [--enable-syntax-highlighting set to "pygments" but pygmentize not found]))])
 
 AM_CONDITIONAL(ENABLE_BUILD_DOCS, test x$enable_build_docs = xtrue)
 
@@ -730,20 +741,28 @@ if test x"${enable_build_docs}" = xtrue ; then
            TEXI_EXTRA_TAIL=''
         else
            TEXI_EXTRA_HEAD='texinfo_set_from_init_file("EXTRA_HEAD", '
-           HLJS_CSS_SELECTOR="'.example-preformatted'"
+           HLJS_CSS_SELECTOR="'.example.user-maxima .example-preformatted'"
            TEXI_EXTRA_TAIL=')'
         fi
-        if test x${syntax_highlight} = xtrue; then
+        if test x${syntax_highlighting} = xhighlightjs; then
 	   HIGHLIGHT1='<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github.min.css"> <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/maxima.min.js"> </script>
 '
 	   HIGHLIGHT2="<script> hljs.configure({languages: [['Maxima']], cssSelector: ${HLJS_CSS_SELECTOR}}); hljs.highlightAll(); </script>
 "
+        fi
+        if test x${syntax_highlighting} = xpygments; then
+           if test ${makeinfo_version} -ge 702; then
+             USE_PYGMENTS=true
+           else
+             AC_MSG_ERROR([Makeinfo version (${makeinfo_version_string}) too old to use pygments for syntax highlighting.  Disable or use highlightjs])
+           fi
         fi
         AC_SUBST(TEXI_EXTRA_HEAD)
         dnl AC_SUBST(HLJS_CSS_SELECTOR)
         AC_SUBST(TEXI_EXTRA_TAIL)
 	AC_SUBST(HIGHLIGHT1)
         AC_SUBST(HIGHLIGHT2)
+        AC_SUBST(USE_PYGMENTS)
         TEXI2HTML=texi2html.init
         AC_SUBST(TEXI2HTML)
 
@@ -1528,3 +1547,9 @@ fi
 if test -n "x$MAKEINFO"; then
   echo "Using makeinfo ${MAKEINFO} to generate docs"
 fi
+
+if test "x${syntax_highlighting}" = "xfalse"; then
+  echo "HTML syntax highlighting disabled"
+else
+  echo "HTML syntax highlighting enabled using ${syntax_highlighting}"
+fi  

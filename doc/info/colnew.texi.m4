@@ -224,7 +224,7 @@ m4_displaymath(<<<\eqalign{
   @itemize
     @item 0, if the problem is regular
     @item 1, if the first relax factor is =rstart, and the
-        nonlinear iteration does not rely on past covergence
+        nonlinear iteration does not rely on past convergence
         (use for an extra sensitive nonlinear problem only).
     @item 2, if we are to return immediately upon  (a) two
         successive nonconvergences, or  (b) after obtaining
@@ -549,7 +549,7 @@ compared to the estimates from the code.
 @c   print("The exact errors are:"),
 @c   printf(true, "   ~{ ~11,4e~}~%", err));
 @c ===end===
-@example
+@example maxima
 @group
 (%i1) load("colnew")$
 
@@ -944,7 +944,7 @@ must be substituted.
 @c    printf(true, "~5,2f  ~{~15,5e~}~%", x, zval),
 @c    x : x + 0.05);
 @c ===end===
-@example
+@example maxima
 @group
 (%i1) load("colnew")$
 
@@ -1311,7 +1311,7 @@ The maxima code is in file
 
 A more sophisticated example is @ref{bellon-talon,, Bellon&Talon 2005},
 which deals with singularities in the
-solution domain, provides an initial quess to the solution
+solution domain, provides an initial guess to the solution
 and uses continuation to solve the system of non-linear
 differential equations.
 
@@ -1526,7 +1526,7 @@ before @var{e} is set, so that it can be changed in the program.
 @c   [png_file,"./colnew-ex5.png"]); */
 @c  done$
 @c ===end===
-@example
+@example maxima
 (%i1) load("colnew")$
 (%i2) kill(e,x,z1,z2)$
 @group
@@ -1832,3 +1832,8 @@ The figure below shows the solution for
    doi:10.1016/j.physleta.2005.02.002}
    @url{https://arxiv.org/abs/hep-th/0407005,arXiv:hep-th/0407005}
 @end itemize
+
+@c Local Variables: 
+@c mode: texinfo
+@c TeX-master: "include-maxima"
+@c End: 
