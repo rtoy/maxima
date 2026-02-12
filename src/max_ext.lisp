@@ -1,6 +1,8 @@
 ;;Autoloads for maxima
 (in-package :maxima)
 
+($auto_mexpr '$accumulate "accumulate.mac")
+
 ($auto_mexpr '$guess_exact_value "pslq")
 (setf (get '$pslq_integer_relation 'autoload) "pslq")
 
@@ -406,6 +408,5 @@
   (setf (get f 'autoload) "tocl"))
 
 (dolist (f
-  '($hstep
-    $pwilt))
+  '($pwilt))
   (setf (get f 'autoload) "pwilt"))

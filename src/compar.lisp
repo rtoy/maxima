@@ -1237,9 +1237,34 @@ TDNEG TDZERO TDPN) to store it, and also sets SIGN."
   `(multiple-value-bind (,lhs ,rhs) (compsplt ,expr)
      ,@forms))
 
+(defun sign-float (x)
+  "Maxima sign of a double-float x. Returns one of '$zero, '$pos, '$neg, or '$und (for NaN)"
+  (cond ((not (= x x)) '$und)   ; NaN check
+        ((zerop x) '$zero) ; ignores signed zero
+        ((minusp x) '$neg) ; x < 0
+        ((plusp x) '$pos)  ; x > 0
+        (t (merror "sign-float called on ~M ~%" x))))
+
+(defun sign-complex-float (x)
+  (multiple-value-bind (is-complex re im) (complex-number-p x #'floatp)
+    (cond
+      (is-complex  ;including the pure real case too
+       (cond
+         ((zerop im) (sign-float re)) ;imaginary part is zero, return sign of real part
+         ((and *complexsign* (zerop re)) '$imaginary) ; real part is zero, imaginary part nonzero, return imaginary
+         (*complexsign* '$complex) ;input is complex, return complex
+         (t (imag-err x)))) ;throw error for sign of complex
+      (t nil)))) ;x isn't a float or a complex float, return nil
+
 (defun sign1 (x)
   (setq x (specrepcheck x))
   (setq x (infsimp* x))
+
+  (let ((sgn (sign-complex-float x)))
+   (when sgn 
+    (setq sign sgn)
+     (return-from sign1 sgn))
+
   (when (and *complexsign* (atom x) (eq x '$infinity))
     ;; In Complex Mode the sign of infinity is complex.
     (when *debug-compar* (format t "~& in sign1 detect $infinity.~%"))
@@ -1278,7 +1303,7 @@ TDNEG TDZERO TDPN) to store it, and also sets SIGN."
                                    (setq sign s odds o evens e minus m)))
                            t)))))
 	 (sign exp))
-     (return sign)))
+     (return sign))))
 
 (defun numer (x)
   (let (($numer t) ; currently, no effect on $float, but proposed to
@@ -1333,9 +1358,13 @@ TDNEG TDZERO TDPN) to store it, and also sets SIGN."
 	 ;; In Complex Mode the sign of %i is $imaginary.
 	 (setq sign '$imaginary))
 	((symbolp x) (if (eq x '$%i) (imag-err x)) (sign-any x))
-	((and (consp x) (symbolp (caar x)) (not (specrepp x)) (get (caar x) 'sign-function))
+	((atom x)
+	 ;; Numbers and symbols are the only atoms for which sign is defined.
+	 ;; If we get this far, any atom triggers an error.
+	 (merror (intl:gettext "sign: sign undefined for ~M") x))
+	((and (symbolp (caar x)) (not (specrepp x)) (get (caar x) 'sign-function))
 	 (funcall (get (caar x) 'sign-function) x))
-	((and (consp x) (not (specrepp x)) ($subvarp (mop x)) (get (mop (mop x)) 'sign-function))
+	((and (not (specrepp x)) ($subvarp (mop x)) (get (mop (mop x)) 'sign-function))
 	 (funcall (get (mop (mop x)) 'sign-function) x))
 	((specrepp x) (sign (specdisrep x)))
 	((kindp (caar x) '$posfun) (sign-posfun x))
@@ -1831,7 +1860,7 @@ TDNEG TDZERO TDPN) to store it, and also sets SIGN."
 ;; This code could handle sin({zerob, zeroa, ind}), but it doesn't.
 
 ;; Finally, sometimes the argument to sin is not simplified; for example,
-;; running the testsuite sometimes this code recieves the expression sin(1/(1/x)). 
+;; running the testsuite sometimes this code receives the expression sin(1/(1/x)).
 ;; We could simplify it, but I think that it would be better to fix the code 
 ;; so that the input to sign-sin is always simplified.
 (defun sign-sin (e) ; e = sin(x)

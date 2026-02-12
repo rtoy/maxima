@@ -210,7 +210,7 @@ maxima [options] --batch-string='batch_answers_from_file:false; ...'
 	 (lisp-patterns (list ext "lisp"))
 	 (maxima-patterns '("mac" "wxm"))
 	 (lisp+maxima-patterns (append lisp-patterns maxima-patterns))
-	 (demo-patterns '("dem"))
+	 (demo-patterns '("dem" "demo"))
 	 (usage-patterns '("usg")))
 
     (flet ((build-search-list (path-info)
@@ -326,25 +326,48 @@ maxima [options] --batch-string='batch_answers_from_file:false; ...'
     (setq *maxima-lang-subdir* nil)))
 
 (defun list-avail-action ()
-  (let* ((maxima-verpkglibdir (if (maxima-getenv "MAXIMA-VERPKGLIBDIR")
-				  (maxima-getenv "MAXIMA-VERPKGLIBDIR")
-				  (if (maxima-getenv "MAXIMA_PREFIX")
-				      (combine-path (maxima-getenv "MAXIMA_PREFIX") "lib"
-						    *autoconf-package* *autoconf-version*)
-				      (combine-path (maxima-parse-dirstring *autoconf-libdir*)
-						    *autoconf-package* *autoconf-version*))))
-	 (len (length maxima-verpkglibdir))
-	 (lisp-string nil))
-    (format t "Available versions:~%")
-    (unless (equal (subseq maxima-verpkglibdir (- len 1) len) "/")
-      (setf maxima-verpkglibdir (concatenate 'string maxima-verpkglibdir "/")))
-    (dolist (version (get-dirs (unix-like-dirname maxima-verpkglibdir)))
-      (dolist (lisp (get-dirs version))
-	(setf lisp-string (unix-like-basename lisp))
-	(when (search "binary-" lisp-string)
-	  (setf lisp-string (subseq lisp-string (length "binary-") (length lisp-string)))
-	  (format t "version ~a, lisp ~a~%" (unix-like-basename version) lisp-string))))
-    (bye)))
+  (cond
+    ((maxima-getenv "MAXIMA_LOCAL")
+     ;; We're running maxima-local in the src tree.
+     (let ((maxima-dir (maxima-getenv "MAXIMA_PREFIX"))
+           ;; I (rtoy) am lazy.  Just use regexp to match
+           ;; "src/binary-foo" which is the directory containing the
+           ;; build using lisp "foo".  Since it's a directory, the
+           ;; pattern should not include the slash.
+           (pattern (pregexp:pregexp "src/binary-([^/]+)")))
+       ;; maxima-local MUST define MAXIMA_PREFIX envvar so we know where we are.
+       (unless maxima-dir
+         (format t "Environment variable MAXIMA_PREFIX not defined by maxima-local.~%~
+                    Cannot list available versions.  Exiting.~%")
+         (bye))
+       (setf maxima-dir (combine-path maxima-dir "src"))
+       (format t "Available versions:~%")
+       (dolist (p (get-dirs (concatenate 'string maxima-dir "/*")))
+         (destructuring-bind (&optional whole-match lisp-name)
+             (pregexp:pregexp-match pattern (namestring p))
+           (declare (ignore whole-match))
+           (when lisp-name
+             (format t "version ~a, lisp ~a~%" *autoconf-version* lisp-name))))))
+    (t
+     (let* ((maxima-verpkglibdir (if (maxima-getenv "MAXIMA-VERPKGLIBDIR")
+				     (maxima-getenv "MAXIMA-VERPKGLIBDIR")
+				     (if (maxima-getenv "MAXIMA_PREFIX")
+				         (combine-path (maxima-getenv "MAXIMA_PREFIX") "lib"
+						       *autoconf-package* *autoconf-version*)
+				         (combine-path (maxima-parse-dirstring *autoconf-libdir*)
+						       *autoconf-package* *autoconf-version*))))
+	    (len (length maxima-verpkglibdir))
+	    (lisp-string nil))
+       (format t "Available versions:~%")
+       (unless (equal (subseq maxima-verpkglibdir (- len 1) len) "/")
+         (setf maxima-verpkglibdir (concatenate 'string maxima-verpkglibdir "/")))
+       (dolist (version (get-dirs (unix-like-dirname maxima-verpkglibdir)))
+         (dolist (lisp (get-dirs version))
+	   (setf lisp-string (unix-like-basename lisp))
+	   (when (search "binary-" lisp-string)
+	     (setf lisp-string (subseq lisp-string (length "binary-") (length lisp-string)))
+	     (format t "version ~a, lisp ~a~%" (unix-like-basename version) lisp-string)))))))
+  (bye))
 
 (defvar *maxima-commandline-options* nil
   "All of the recognized command line options for maxima")
@@ -489,7 +512,9 @@ maxima [options] --batch-string='batch_answers_from_file:false; ...'
 				     ;; $loadprint T so we can see the file being loaded;
 				     ;; unless *maxima-quiet* is T.
 				     (let (($loadprint (not *maxima-quiet*)))
-				       ($load file)))
+                                       ;; If there's an error, catch
+                                       (catch 'macsyma-quit
+				         ($load file))))
 			 :help-string
                          "Preload <file>, which may be any file time accepted by
         Maxima's LOAD function.  The <file> is loaded before any other
@@ -720,6 +745,7 @@ maxima [options] --batch-string='batch_answers_from_file:false; ...'
   (setf $pointbound *alpha)
   (setf (gethash '$pointbound *variable-initial-values*)
 	*alpha)
+  (initialize-atan2-hashtable)
   (values))
 
 (defun adjust-character-encoding ()

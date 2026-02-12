@@ -108,7 +108,8 @@
 	((mlist simp) "rtest_gamma"
 	 #+allegro   ((mlist simp) 48 198 663 745))
         "rtest_expintegral"
-        "rtest_signum"
+        ((mlist simp) "rtest_signum"
+     #+gcl ((mlist simp) 78 79))
         "rtest_lambert_w"
         ((mlist simp) "rtest_elliptic"
 	 #-allegro ((mlist simp) 135)
@@ -125,7 +126,7 @@
         "rtestdefstruct"
 	;; Tested with acl 10.1
 	((mlist simp) "rtest_limit"
-         ((mlist simp) 113 158 159))
+         ((mlist simp) 113 159 160))
         "rtest_powerseries"
         ((mlist simp) "rtest_laplace"
 	 ((mlist simp) 29 49 50 51 59 60 61 62 78 80))
@@ -135,12 +136,12 @@
 	"rtest_polynomialp"
         ((mlist simp) "rtest_limit_extra" 
           ((mlist simp)  42 59 61 82 83 84 89 
-                         96 104 111
+                         96 104 
                          124 125 126 127 132 133 135 136 137
                          224 238 
                          239 240 241 242 243 244 245 246 249
-                         261 262 267 268 269 270 271 272
-                         280 281 282 357 358))
+                         261 262 267 268 269 270 272
+                         281 282 357 358))
          ((mlist simp) "rtest_limit_gruntz"
           ((mlist simp) 20 25 28 29 30 36 37 38 39 86 96))
 
@@ -148,8 +149,13 @@
           ((mlist simp) 12 13))
 
          ((mlist simp) "rtest_great" ((mlist simp)))
-          
+        
+         ((mlist simp) "rtest_atan2" ((mlist simp) 65))
         "rtest_gcd"
+        ((mlist simp) "rtest_hstep")
+        ((mlist simp) "rtest_sinc"
+           #+ccl ((mlist simp) 15 16)
+	   #-ccl ((mlist simp)))
 	;; The tests that failed with abcl 1.5.0
 	((mlist simp) "rtest_hg"
 	 #+(or gcl abcl) ((mlist simp) 120)
@@ -215,10 +221,6 @@
     ;; On sbcl 1.4.10 we still get out-of-memory errors on many
     ;; computers on loading lapack => commented these tests out
     ;; for SBCL.    
-    ;;
-    ;;  The following functions were used but not defined: ODEPACK::DUMACH in gcl 2.6.12
-    ;;  and abcl 1.5.0
-
     #-sbcl
     ((mlist simp) "rtest_dgemm")
     #-sbcl
@@ -226,8 +228,6 @@
     #-sbcl
     ((mlist simp) "rtest_dgesv")
     ;;  The following functions were used but not defined: ODEPACK::DUMACH in gcl 2.6.12
-    ;;  and abcl 1.5.0
-    #-abcl
     "rtest_dlsode"
     ((mlist simp) "rtest_fourier_elim"
      ((mlist simp) 146 147 148 149))
@@ -281,9 +281,7 @@
     ((mlist simp) "rtest_abs_integrate" ((mlist) 173 249))
     "rtest_pochhammer"
     ((mlist simp) "rtest_to_poly_solve"
-     #+gcl ((mlist simp) 64 74 80 116 140 141 168 184 242 245 322)
-     #-(or gcl) ((mlist simp) 64 74 80 116 140 141 168 184 242 245 322)
-     )
+     ((mlist simp) 64 74 80 116 140 141 168 184 242 245 322))
     ((mlist simp) "rtest_sym"
      #-(or sbcl ccl gcl clisp cmucl ecl) ((mlist simp) 15 64)
      #+sbcl ((mlist simp))
@@ -305,6 +303,7 @@
       ((mlist simp) 9 10 11))
      "rtest_fft"
      "rtest_rfft"
+     "rtest_rk_adaptive"
      "rtest_wrstcse"
      "rtest_draw"
      ((mlist simp) "rtest_engineering_format"

@@ -137,8 +137,7 @@
 	       (logcombed ()) (lhp? ())
 	       (varlist ()) (ans ()) (genvar ()) (loginprod? ())
 	       (limit-answers ()) (limitp t) (simplimplus-problems ())
-	       (lenargs (length args))
-	       (genfoo ()))
+	       (lenargs (length args)))
 	   (declare (special lhcount *behavior-count-now* exp var val *indicator
 			     taylored origval logcombed lhp?
 			     varlist genvar loginprod? limitp))
@@ -154,7 +153,7 @@
                 ;; The expression is 'T or 'NIL. Return immediately.
                 (return exp1))
 	      (cond ((= lenargs 1)
-		     (setq var (setq genfoo (gensym)) ; Use a gensym. Not foo.
+		     (setq var (gensym)
 		           val 0))
 		    (t
 		     (setq var (second args))
@@ -189,12 +188,6 @@
 	    (when (indefinite-integral-p exp var)
 		  	(return (cons (list '%limit) args)))
 
-		;; This returns a limit nounform for expressions such as 
-		;; limit(x < 8,x,0), limit(diff(f(x),x,x,0), and ...
-        (unless (eq var genfoo)
-		  (when (limunknown exp)
-			    (return `((%limit) ,@(cons exp1 (cdr args))))))	
-
 	      (setq varlist (ncons var) genvar nil origval val)
 	      ;; Transform limits to minf to limits to inf by
 	      ;; replacing var with -var everywhere.
@@ -227,16 +220,23 @@
 	      ;; Make assumptions about limit var being very small or very large.
 	      ;; Assumptions are forgotten upon exit.
 	      (unless (= lenargs 1)
-		(limit-context var val dr))
-            ;; Resimplify in light of new assumptions. Changing ($expand exp 1 0)
-			;; to ($expand exp 0 0) results in a bad testsuite failure for
-			;; (assume(a>2), limit(integrate(t/log(t),t,2,a)/a,a,inf)) and
-			;; some testsuite results that are more messy.
+		    (limit-context var val dr))
+
+			;; Use $expand to resimplify `exp` in light of new assumptions. When `exp` is free of the limit 
+			;; `var`, perform pure simplification using ($expand exp 0 0)  otherwise, call ($expand exp 1 0).
+			;; Replacing ($expand exp 1 0) with ($expand exp 0 0) causes a serious testsuite failure for
+            ;; (assume(a > 2), limit(integrate(t/log(t), t, 2, a)/a, a, inf)) and produces messier results 
+			;; in other cases.
+
+            ;; Performing pure simplification for expressions free of the limit variable
+            ;; fixes the bug: limit(inf*(zeroa + inf)) -> und. Eventually, the call to ($expand exp 1 0) 
+			;; be replaced with ($expand exp 0 0) for all limit expressions `exp`.
+
             (setq exp (resimplify 
 			          ($minfactorial
 			          (extra-simp 
-					  ($expand exp 1 0)))))
-           
+					  ($expand exp (if ($freeof var exp) 0 1) 0)))))
+			          
 	      (if (not (or (real-epsilonp val)		;; if direction of limit not specified
 			   (infinityp val)))
 		  (setq ans (both-side exp var val))	;; compute from both sides
@@ -350,8 +350,8 @@
                      (t
                       '$ind))))))))
 
-;; Return true when Maxima should return a limit nounform for limit(e,x,var,val).
-(defun limunknown (e)
+(defun limunknown (e var)
+  "Return true when Maxima should return a limit nounform for limit(e,x,var,val)."
   (not (limit-ok e var)))
 
 ;; Return true when Maxima's limit code should be able to determine limit
@@ -664,13 +664,15 @@ ignoring dummy variables and array indices."
 ;; The function `limit1` dispatches `factor` on the expression `exp`. When 
 ;; the expression involves a floating point number, these numbers are converted 
 ;; to rational approximations. This can cause bugs for limit calculations. 
-;; Although a bit inelegant, this code dispatches `simplimit` when `exp` a 
+;; Although a bit inelegant, this code dispatches `simplimit` when `exp` is a 
 ;; floating point number.
 (defun limit (exp var val *i*)
   (cond
     ((among '$und exp)  '$und)
     ((eq var exp)  val)
     ((atom exp)  exp)
+	;; Throw an limit error for expressions such as limit(x < 8,x,0), limit(diff(f(x),x),x,0), and ...
+    ((limunknown exp var) (throw 'limit t))
     ((not (among var exp))
      (cond ((amongl '($inf $minf $infinity $ind) exp)
 	    (simpinf exp))
@@ -970,8 +972,8 @@ ignoring dummy variables and array indices."
 			(cond ((not (equal (setq gcp (gcpower n dn)) 1))
 			       (return (colexpt n dn gcp)))
 			      ((and (eq '$inf val)
-				    (or (involve dn '(mfactorial %gamma))
-					(involve n '(mfactorial %gamma))))
+				    (or (involve dn '(mfactorial %gamma %expintegral_ei))
+					(involve n '(mfactorial %gamma %expintegral_ei))))
 			       (return (limfact n dn))))))
 		  ((eq n1 d1) (setq lim-sign 1) (go cp))
 		  (t (setq lim-sign -1) (go cp))))
@@ -1209,8 +1211,8 @@ ignoring dummy variables and array indices."
 	  ((eq (caar ans) '%limit)  ())
 	  (t ans))))
 
-;; substitute asymptotic approximations for gamma, factorial, and
-;; polylogarithm
+;; substitute asymptotic approximations for gamma, factorial,
+;; polylogarithm, and expintegral_ei
 (defun stirling0 (e)
    (cond ((atom e) e)
 	((and (setq e (cons (car e) (mapcar 'stirling0 (cdr e))))
@@ -1243,7 +1245,44 @@ ignoring dummy variables and array indices."
 	 (li-asymptotic-expansion (m- (car (subfunsubs e)) 1) 
 				   (car (subfunsubs e))
 				   (car (subfunargs e))))
+	((and (eq (caar e) '%expintegral_ei)
+	      (let ((arglim (limit (cadr e) var val 'think)))
+		(eq arglim '$inf)))
+	 (ei-asymptotic-expansion $lhospitallim (cadr e)))
+	((eq (caar e) '%gamma_incomplete) (gamma-incomplete-asymptotic e var val $lhospitallim))
 	(t e)))
+
+;; See http://dlmf.nist.gov/8.11.i
+(defun gamma-incomplete-asymptotic (e x pt n)
+	(let* ((aaa (second e)) (z (third e)) (xxx (limit z x pt 'think)))
+		(cond 
+          ;; Case 1: Asymptotic expansion when z -> +/- inf and aaa is free of x
+          ;; For the series, see http://dlmf.nist.gov/8.11.i
+		  ((and (or (eq '$inf xxx) (eq '$minf xxx)) (freeof x aaa))
+		         (let ((f 1) (s 0))
+		           (dotimes (k n)
+				      (setq s (add s f))
+                      (setq f (mul f (div (add aaa -1 (- k)) z))))
+				 ;; return z^(a-1)*exp(-z)*s
+				 (mul (ftake 'mexpt z (sub aaa 1)) (ftake 'mexpt '$%e (mul -1 z)) s)))
+           ;; Case 2: Asymptotic expansion when z -> 0, aaa integer, and aaa <= 0
+		   ;; For the series, see http://dlmf.nist.gov/8.4.E15
+		   ((and (zerop2 xxx) (integerp aaa) (>= 0 aaa))
+		      (let ((s 0))
+		      (flet ((fn (k) (if (eql (add k aaa) 0) 
+			                        0 
+									(div (power (neg z) k) (mul (ftake 'mfactorial k) (add k aaa))))))
+					(dotimes (k n)
+						(setq s (add s (fn k))))
+					
+					(sub (mul
+					       (div (ftake 'mexpt -1 (neg aaa)) (ftake 'mfactorial (neg aaa)))
+					       (sub 
+					         (simplifya (subfunmake '$psi (list 0) (list (add (neg aaa) 1))) nil)
+						     (ftake '%log z)))
+						 (mul (ftake 'mexpt z (neg aaa)) s)))))
+	       ;; Case 3: fall back			
+           (t (ftake '%gamma_incomplete aaa z)))))
 
 (defun stirling (x)
   "Return sqrt(2*%pi/x)*(x/%e)^x, the Stirling approximation of
@@ -2428,9 +2467,13 @@ ignoring dummy variables and array indices."
 	 (setq sum (fapply 'mplus sum))
 
      (cond (undl
-	    (if (or infl minfl indl infinityl)
-		(setq infinityl (append undl infinityl)); x^2 + x*sin(x)
-		(return '$und)))			; 1 + x*sin(x)
+	     ;; When there are inf, minf, or infinity terms, the limit might not be und.
+         ;; For example, limit(x^2+x*sin(x),x,inf). For such cases, append the und 
+         ;; terms to the infinity terms and continue processing. But when there are 
+		 ;; no infinity terms, the limit is und; for example limit(1 + x*sin(x),x,inf)
+         (cond ((or infl minfl infinityl)
+                   (setq infinityl (append undl infinityl)))
+                 (t (return '$und))))
 	   ((not (or infl minfl indl infinityl))
 	    (return (cond ((atom sum)  sum)
 			  ((or (not (free sum '$zeroa))
@@ -3249,7 +3292,7 @@ ignoring dummy variables and array indices."
 	       (let* ((z (trisplit arglim)) (xx (car z))  (yy (cdr z)) (sgn))
            ;; When yy vanishes, find the sign of xx. But when the sign is 'pnz', 
 		   ;; use asksign. We could use 'meqp' or 'askequal' to  test for a vanishing yy,
-		   ;; but for now, we'll test for a syntatic zero 
+		   ;; but for now, we'll test for a syntactic zero
 			(when (eql 0 yy)
 				(setq sgn (maybe-asksign xx))
 				(when (eq sgn '$pnz)
@@ -3656,13 +3699,26 @@ ignoring dummy variables and array indices."
          (b (fifth e))               ;lower limit or nil if indefinite
 	 (alim) (blim))
     (cond ((and a b ($freeof x ee) ($freeof x var))
-	   (setq alim (limit a x pt 'think))
-	   (setq blim (limit b x pt 'think))
+	   (setq alim (ridofab (limit a x pt 'think)))
+	   (setq blim (ridofab (limit b x pt 'think)))
 	   (if (and (lenient-extended-realp alim) 
 		    (lenient-extended-realp blim)
 		    (not (eq alim '$infinity))
 		    (not (eq blim '$infinity)))
-	       (ftake '%integrate ee var alim blim)
+	       (let ((ans (ftake '%integrate ee var alim blim)))
+		 (if (and (consp ans)
+			  (eq (caar ans) '%integrate))
+		     ;; could not find antideriv
+		     (if (and ; upper limit of integration growing with x
+			      (eq blim '$inf)
+			      (not (eq alim '$minf))
+			      (eq ($sign (limit ee var blim 'think)) '$pos))
+			 ;; divergent, even if could not find antideriv.
+			 ;; could be extended to handle negative ee,
+			 ;; x in lower limit of integration.
+			 '$inf
+		      	 (throw 'limit t))
+		     ans)) ; found antideriv, answer from ftake '%integrate
 	       (throw 'limit t)))
           (t
            (throw 'limit t)))))
