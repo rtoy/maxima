@@ -845,6 +845,17 @@ if test x"${enable_build_docs}" = xtrue ; then
             AC_MSG_RESULT([${makeinfo_version_string} (6.8 or later preferred)])
 	fi
 
+        dnl If makeinfo supports the classes for the navigation panel, enable
+        dnl CSS styling for the panel.  This support was added in 7.2.90.
+        if test ${makeinfo_version} -ge 70290; then
+           NAV_PANEL_CSS="$(cat | tr -s '\n' ' ' <<EOF
+<link rel="stylesheet"
+      type="text/css"
+      href="nav-panel.css">
+EOF
+)"
+        fi
+        
         dnl Enable JS highlighting of examples in the HTML docs.
         dnl The API has changed between 6.8 and 7.0, so we need to substitute the
         dnl the appropriate things.
@@ -957,6 +968,7 @@ EOF
         AC_SUBST(USE_CUSTOM_HILITE)
         AC_SUBST(CUSTOM_PYGMENTS)
         AC_SUBST(CUSTOM_PYGMENTS_CSS)
+        AC_SUBST(NAV_PANEL_CSS)
         TEXI2HTML=texi2html.init
         AC_SUBST(TEXI2HTML)
 
@@ -1581,7 +1593,7 @@ interfaces/emacs/misc/Makefile interfaces/xmaxima/Makefile \
 interfaces/xmaxima/autoconf-variables.tcl interfaces/xmaxima/Tkmaxima/Header.tcl \
 interfaces/xmaxima/doc/Makefile interfaces/xmaxima/doc/figures/Makefile \
 interfaces/xmaxima/msgs/Makefile interfaces/xmaxima/win32/Makefile \
-plotting/mgnuplot share/Makefile demo/Makefile plotting/Makefile locale/Makefile \
+share/Makefile demo/Makefile locale/Makefile \
 share/contrib/Makefile
 share/contrib/guess/Makefile \
 share/contrib/guess/doc/Makefile \

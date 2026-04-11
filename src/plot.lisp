@@ -10,9 +10,6 @@
   (values (stringp val)
           "must be a string"))
 
-(defmvar $mgnuplot_command "mgnuplot"
-  "The command (a string) that will run mgnuplot"
-  :setting-predicate #'string-predicate)
 (defmvar $geomview_command "geomview"
   "The command (a string) that will run geomview"
   :setting-predicate #'string-predicate)
@@ -24,10 +21,10 @@
 Examples
 
 /* plot of z^(1/3)...*/
-plot3d(r^.33*cos(th/3),[r,0,1],[th,0,6*%pi],['grid,12,80],['transform_xy,polar_to_xy],['plot_format,geomview]);
+plot3d(r^.33*cos(th/3),[r,0,1],[th,0,6*%pi],['grid,12,80],['transform_xy,polar_to_xy],'geomview);
 
 /* plot of z^(1/2)...*/
-plot3d(r^.5*cos(th/2),[r,0,1],[th,0,6*%pi],['grid,12,80],['transform_xy,polar_to_xy],['plot_format,xmaxima]);
+plot3d(r^.5*cos(th/2),[r,0,1],[th,0,6*%pi],['grid,12,80],['transform_xy,polar_to_xy],'xmaxima);
 
 /* moebius */
 plot3d([cos(x)*(3+y*cos(x/2)),sin(x)*(3+y*cos(x/2)),y*sin(x/2)],[x,-%pi,%pi],[y,-1,1],['grid,50,15]);
@@ -90,20 +87,13 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
 
 (defun coerce-float (x) ($float (meval* x)))
 
-;; This variable seems to be a remnant of when Maxima was distributed with
-;; two plotting programs: mgnuplot and omplotdata. omplotdata no longer
-;; exists and the only program left in the directory *maxima-plotdir* is
-;; a version of mgnuplot that is no longer usable.
-;; Let's leave it for now, in case we ever recover mgnuplot (to get rid
-;; of it would imply modifying init-cl.lisp when this variable is set.
-(defvar *maxima-plotdir* "")
-
 ;; Global plot options list; this is a property list.. It is not a
 ;; Maxima variable, to discourage users from changing it directly; it
 ;; should be changed via set_plot_option.
 ;; The default values will bet set below, after the definition of
 ;; function $reset_plot_options.
-(defvar *plot-options*)
+(defvar *plot-options*
+  "Default options for the plotting programs")
 
 ;; Apparently Wxmaxima needs a default plot_options Maxima list pre-defined.
 ;; We will then create such list with minimum content.
@@ -167,24 +157,16 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
   (setq *plot-options* (plot-options-parser value *plot-options*))
   ($get_plot_option))
 
-;; Sets the default plotting options.
 (defmfun $reset_plot_options ()
-  (setq *plot-options* nil)
-  (setf (getf *plot-options* '$gnuplot_term) '$default)
-  (setf (getf *plot-options* '$gnuplot_preamble) "")
-  (setf (getf *plot-options* '$gnuplot_svg_background) "white")
-  (setf (getf *plot-options* '$palette)
-        '(((mlist) $hue 0.33333333 0.7 1 0.5) ((mlist) $hue 0.8 0.7 1 0.4)))
-  (setf (getf *plot-options* '$point_type)
-        '($bullet $box $triangle $plus $times $asterisk))
-  (setf (getf *plot-options* '$color)
-        '($blue $red $green $magenta $black $cyan))
-  (setf (getf *plot-options* '$adapt_depth) 5)
-  (setf (getf *plot-options* '$nticks) 29)
-  (setf (getf *plot-options* '$axes) t)
-  (setf (getf *plot-options* '$run_viewer) t)
-  (setf (getf *plot-options* '$grid) '(30 30))
-  (setf (getf *plot-options* '$plot_format) '$gnuplot_pipes)
+  "Sets the default plotting options."
+  (setf
+   *plot-options*
+   '($grid (30 30) $color ($blue $red $green $magenta $black $cyan)
+           $gnuplot_term $default $mesh_lines_color "dimgray"
+           $palette $default $gnuplot_preamble "" $background_color "white"
+           $point_type ($bullet mbox $triangle $plus $times $asterisk)
+           $adapt_depth 5 $nticks 29 $axes t $run_viewer t 
+           $plot_format $gnuplot_pipes))
   t)
 
 ($reset_plot_options)
@@ -208,6 +190,7 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
     (format str "~,,,,,,'eg " f)
     (format str "~a " *missing-data-indicator*)))
 
+;; There is currently no need for this polygon structure (villate, 2026-03-31)
 (defstruct (polygon (:type list)
                     (:constructor %make-polygon (pts edges)))
   (dummy '($polygon simp))
@@ -227,36 +210,72 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
     (defmacro make-polygon (a b)
       `(list '($polygon) ,a ,b)))
 
-(defun draw3d (f minx maxx miny maxy  nxint nyint)
-  (let* ((epsx (/ (- maxx minx) nxint))
-         (x 0.0)  ( y 0.0)
+(defun vertices-matrix (points nxint nyint)
+"(vertices-matrix points nxint nyint). Given a vector 'points' and two integers
+nxint and nyint, it returns a matrix in which each row has the indices of the
+points for a given value of y in the mesh, or T if the value of z doesn't
+exist at the corresponding mesh point.
+'points' is a sequence x0 y0 y0 x1 y1 z1 ... with the coordinates of all the
+points in the mesh; the indices in the returned matrix are the positions of
+the corresponding points in the list of valid points (excluding those whose
+z coordinate is not a number)." 
+  (let (vertices row (r 0) (k 0))
+    (loop for j to nyint
+          do
+          (setf row nil)
+          (setf r (* 3 j (1+ nxint)))
+          (loop for i to (* 3 nxint) by 3
+                do
+                (let (pt)
+                  (dotimes (n 3) (push (elt points (+ r i n)) pt))
+                  (if (= (length (remove t pt)) 3)
+                    (progn
+                      (push k row)
+                      (incf k))
+                    (push t row))))
+          (push (reverse row) vertices))
+    (reverse vertices)))
+
+(defun polygons (matrix)
+"(polygons matrix). Creates a list of polygins for rectangular mesh defined
+by 'matrix'.
+Each sublist in matrix has non-negative integers, or T, identifiying the
+points in each row of the mesh; the non-negative integer is the position
+of the (x, y, z) coordinates of the corresponding point in a vector with
+all the points coordinates (ater removal of non-valid points); if the value
+is T, it means that there is no valid point in that position of the mesh.
+The list returned will have sublists of 3 or 4 elements that label the
+vertices of a triangle or a quadrilateral."
+  (let (pols pol (rows (length matrix)) (cols (length (first matrix))))
+    (dotimes (j (1- rows))
+      (dotimes (i (1- cols))
+        (setf pol nil)
+        (push (nth i (nth (1+ j) matrix)) pol)
+        (push (nth (1+ i) (nth (1+ j) matrix)) pol)
+        (push (nth (1+ i) (nth j matrix)) pol)
+        (push (nth i (nth j matrix)) pol)
+        (setf pol (remove t pol))
+        (when (> (length pol) 2) (push pol pols))))
+    (reverse pols)))
+
+(defun draw3d (f minx maxx miny maxy nxint nyint)
+  (let ( (x 0.0) (y 0.0) z (z-count 0) (epsx (/ (- maxx minx) nxint))
          (epsy (/ (- maxy miny) nyint))
-         (nx (+ nxint 1))
-         (l 0) fval (fval-count 0)
-         (ny (+ nyint 1))
-         (ar (make-array  (+ 12         ; 12  for axes
-                             (* 3 nx ny))  :fill-pointer (* 3 nx ny)
-                             :element-type t :adjustable t)))
-    (declare (type flonum x y epsy epsx)
-             (fixnum nx ny l fval-count)
-             (type (cl:array t) ar))
-    (loop for j below ny
-           initially (setq y miny)
-           do (setq x minx)
-           (loop for i below nx
-                  do
-                  (setf (x-pt ar l) x)
-                  (setf (y-pt ar l) y)
-                  (setq fval (funcall f x y))
-                  (if (floatp fval) (setq fval-count (1+ fval-count)))
-                  (setf (z-pt ar l) fval)
-                  (incf l)
-                  (setq x (+ x epsx))
-                  )
-           (setq y (+ y epsy)))
-    (if (< fval-count 1)
-        (merror (intl:gettext "plot3d: nothing to plot.~%")))
-    (make-polygon  ar  (make-grid-vertices nxint nyint))))
+         (points (make-array (* 3 (1+ nxint) (1+ nyint)) :fill-pointer 0
+                             :element-type t)))
+    (declare (type flonum x y epsy epsx) (fixnum z-count)
+             (type (cl:array t) points))
+    (dotimes (j (1+ nyint))
+      (setq y (+ miny (* j epsy)))
+      (dotimes (i (1+ nxint))
+        (setq x (+ minx (* i epsx)))
+        (setq z (funcall f x y))
+        (vector-push x points)
+        (vector-push y points)
+        (vector-push z points)
+        (if (floatp z) (setq z-count (1+ z-count)))))
+    (if (< z-count 1) (merror (intl:gettext "plot3d: nothing to plot.~%")))
+    (values points z-count)))
 
 ;; ***** This comment refers to some unexistent function make-vertices ****
 ;; ***** let's leave it here for the sake of history :)                ****
@@ -351,10 +370,10 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
   (declare (type (cl:array t) pts))
   (assert (typep pts '(vector t)))
   (loop for i below (length pts) by 3
-         do (setq r (aref pts i))
-         (setq th (aref pts (+ i 1)))
-         (setf (aref pts i) (* r (cos th)))
-         (setf (aref pts (+ i 1)) (* r (sin th)))))
+         do (setq r (elt pts i))
+         (setq th (elt pts (1+ i)))
+         (setf (elt pts i) (* r (cos th)))
+         (setf (elt pts (1+ i)) (* r (sin th)))))
 
 ;; Transformation from spherical coordinates to rectangular coordinates,
 ;; to be used in plot3d. Example of its use:
@@ -367,16 +386,23 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
   (declare (type (cl:array t) pts))
   (assert (typep pts '(vector t)))
   (loop for i below (length pts) by 3
-     do (setq th (aref pts i))
-       (setq ph (aref pts (+ i 1)))
-       (setq r (aref pts (+ i 2)))
-       (setf (aref pts i) (* r (sin th) (cos ph)))
-       (setf (aref pts (+ i 1)) (* r (sin th) (sin ph)))
-       (setf (aref pts (+ i 2)) (* r (cos th)))))
-      
+        do
+        (if (floatp (elt pts (+ i 2)))
+          (progn
+            (setq th (elt pts i))
+            (setq ph (elt pts (+ i 1)))
+            (setq r (elt pts (+ i 2)))
+            (setf (elt pts i) (* r (sin th) (cos ph)))
+            (setf (elt pts (+ i 1)) (* r (sin th) (sin ph)))
+            (setf (elt pts (+ i 2)) (* r (cos th))))
+          (progn
+            (setf (elt pts i) t)
+            (setf (elt pts (+ i 1)) t)))))
 
 ;; return a function suitable for the transform function in plot3d.
 ;; FX, FY, and FZ are functions of three arguments.
+;; This function needs to be fixed for the case when coerce-float-fun
+;; returns T instead of a floating-point value.
 (defmfun $make_transform (lvars fx fy fz)
   (setq fx (coerce-float-fun fx lvars "make_transform"))
   (setq fy (coerce-float-fun fy lvars "make_transform"))
@@ -388,12 +414,12 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
               (declare (type (cl:array t) pts))
               (loop for i below (length pts) by 3
                      do 
-                     (setq x1 (aref pts i))
-                     (setq x2 (aref pts (+ i 1)))
-                     (setq x3 (aref pts (+ i 2)))
-                     (setf (aref pts i) (funcall fx x1 x2 x3))
-                     (setf (aref pts (+ 1 i)) (funcall fy x1 x2 x3))
-                     (setf (aref pts (+ 2 i)) (funcall fz x1 x2 x3)))))))
+                     (setq x1 (elt pts i))
+                     (setq x2 (elt pts (+ i 1)))
+                     (setq x3 (elt pts (+ i 2)))
+                     (setf (elt pts i) (funcall fx x1 x2 x3))
+                     (setf (elt pts (+ 1 i)) (funcall fy x1 x2 x3))
+                     (setf (elt pts (+ 2 i)) (funcall fz x1 x2 x3)))))))
 
 ;; Return value is a Lisp function which evaluates EXPR to a float.
 ;; COERCE-FLOAT-FUN always returns a function and never returns a symbol,
@@ -1651,8 +1677,8 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
     (list '(mlist) ymin ymax)))
 
 (defmvar $gnuplot_view_args
-    #+(or sbcl gcl) "-persist ~a"
-    #-(or sbcl gcl) "-persist ~s"
+    #+(or sbcl openmcl gcl) "-persist ~a"
+    #-(or sbcl openmcl gcl) "-persist ~s"
     "String of additional command-line options for gnuplot.  See the user
     manual."
     :setting-predicate #'string-predicate)
@@ -1673,19 +1699,6 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
       (setq name (format nil "~a~a" name (aref chars (random 36)))))
     name))
 
-;; TODO: This next function should be moved into gnuplot_def.lisp
-;; and instead of the list of options, the argument should be the desired
-;; extension for the file (villate 20240325)
-(defun plot-set-gnuplot-script-file-name (options)
-  (let ((gnuplot-term (getf options '$gnuplot_term))
-	(gnuplot-out-file (getf options '$gnuplot_out_file)))
-    (if (and (find (getf options '$plot_format) '($gnuplot_pipes $gnuplot))
-             (eq gnuplot-term '$default) gnuplot-out-file)
-	(plot-file-path gnuplot-out-file t options)
-      (plot-file-path (format nil "~a.~a" (random-name 16)
-                              (ensure-string (getf options '$plot_format)))
-                      nil options))))
-
 (defun plot-temp-file0 (file &optional (preserve-file nil))
   (let ((filename 
 	 (if *maxima-tempdir* 
@@ -1695,6 +1708,7 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
       (setf (gethash filename *temp-files-list*) t))
     (format nil "~a" filename)
     ))
+
 (defun plot-temp-file (file &optional (preserve-file nil) (plot-options nil))
   (let (script-name
         (script-name-or-fun
@@ -1754,7 +1768,10 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
                        (setf (caddr opt) (parse-azimuth (caddr opt))))
                    (setf (getf options '$azimuth)
                          (check-option (cdr opt) #'realp "a real number" 1)))
-         ($box (setf (getf options '$box)
+         ($background_color
+          (setf (getf options '$background_color)
+                (check-option-b (cdr opt) #'plotcolorp "a color" 1)))
+         (mbox (setf (getf options 'mbox)
                      (check-option-boole (cdr opt))))
          ($color (setf (getf options '$color)
                        (check-option (cdr opt) #'plotcolorp "a color")))
@@ -1783,6 +1800,8 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
 			  (if (listp x) x (cons x nil)))))
          ($levels (setf (getf options '$levels)
                         (check-option-levels (cdr opt))))
+         ($lighting (setf (getf options '$lighting)
+                      (check-option-boole (cdr opt))))
          ($logx (setf (getf options '$logx)
                       (check-option-boole (cdr opt))))
          ($logy (setf (getf options '$logy)
@@ -1899,8 +1918,8 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
           (setf (getf options '$gnuplot_strings)
                 (check-option-boole (cdr opt))))
          ($gnuplot_svg_background
-          (setf (getf options '$gnuplot_svg_background)
-                (check-option-b (cdr opt) #'stringp "a string" 1)))
+          (setf (getf options '$background_color)
+                (check-option-b (cdr opt) #'plotcolorp "a color" 1)))
          ($gnuplot_preamble
           (setf (getf options '$gnuplot_preamble)
                 (check-option (cdr opt) #'stringp "a string" 1)))
@@ -1938,12 +1957,15 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
       ((symbolp opt)
        (case opt
          ($axes (setf (getf options '$axes) t))
-         ($box (setf (getf options '$box) t))
+         (mbox (setf (getf options 'mbox) t))
          ($color_bar (setf (getf options '$color_bar) t))
          ($color_bar_tics (remf options '$color_bar_tics))
+         ($cylindrical (setf (getf options '$transform_xy) '$polar_to_xy))
+         ($geomview (setf (getf options '$plot_format) '$geomview))
          ($grid2d (setf (getf options '$grid2d) t))
          ($legend (remf options '$legend))
          ($mesh_lines_color (remf options '$mesh_lines_color))
+         ($lighting (setf (getf options '$lighting) t))
          ($logx (setf (getf options '$logx) t))
          ($logy (setf (getf options '$logy) t))
          ($palette (remf options '$palette))
@@ -1960,14 +1982,13 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
          ($gnuplot_pipes (setf (getf options '$plot_format) '$gnuplot_pipes))
          ($gnuplot_pm3d (setf (getf options '$gnuplot_pm3d) t))
          ($gnuplot_strings (setf (getf options '$gnuplot_strings) t))
-         ($gnuplot (setf (getf options '$plot_format) '$gnuplot))
-
          ($noaxes (setf (getf options '$axes) nil))
-         ($nobox (setf (getf options '$box) nil))
+         ($nobox (setf (getf options 'mbox) nil))
          ($nocolor_bar (setf (getf options '$color_bar) nil))
          ($nocolor_bat_tics (setf (getf options '$color_bat_tics) nil))
          ($nogrid2d (setf (getf options '$grid2d) nil))
          ($nolegend (setf (getf options '$legend) nil))
+         ($nolighting (setf (getf options '$lighting) nil))
          ($nologx (setf (getf options '$logx) nil))
          ($nology (setf (getf options '$logy) nil))
          ($nomesh_lines (setf (getf options '$mesh_lines_color) nil))
@@ -1985,6 +2006,7 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
          ($nozlabel (setf (getf options '$zlabel) ""))
          ($nognuplot_strings (setf (getf options '$gnuplot_strings) nil))
          ($nognuplot_svg_background (setf (getf options '$gnuplot_svg_background) nil))
+         ($spherical (setf (getf options'$transform_xy) '$spherical_to_xyz))
          (t
           (merror (intl:gettext "Unknown plot option \"~M\".") opt))))))
   options)
@@ -1995,26 +2017,17 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
 ;; positive real numbers predicate
 (defun realpositivep (x) (or (and (realp x) (> x 0)) nil))
 
+(defun real01p (x)
+  "Test for real numbers between 0 and 1"
+  (or (and (realp x) (>= x 0) (<= x 1)) nil))
+
 ;; possible values for the axes option
 (defun axesoptionp (o) (if (member o '($x $y $solid)) t nil))
 
 ;; the 13 possibilities for the point types
 (defun pointtypep (p)
-  (if (member p  '($bullet $circle $plus $times $asterisk $box $square
+  (if (member p  '($bullet $circle $plus $times $asterisk mbox $square
                   $triangle $delta $wedge $nabla $diamond $lozenge)) t nil))
-
-;; Colors can only be one of the named colors or a six-digit hexadecimal
-;; number with a # suffix.
-(defun plotcolorp (color)
-  (cond ((and (stringp color)
-              (string= (subseq color 0 1) "#")
-              (= (length color) 7)
-              (ignore-errors (parse-integer (subseq color 1 6) :radix 16)))
-         t)
-        ((member color '($red $green $blue $magenta $cyan $yellow
-                         $orange $violet $brown $gray $black $white))
-         t)
-        (t nil)))
 
 ;; tries to convert az into a floating-point number between 0 and 360
 (defun parse-azimuth (az) (mod (coerce-float (meval* az)) 360))
@@ -2103,41 +2116,63 @@ plot3d([cos(y)*(10.0+6*cos(x)), sin(y)*(10.0+6*cos(x)),-6*sin(x)],
 
 ;; one of the possible formats
 (defun check-option-format (option &aux formats)
-  (setq formats '($geomview $gnuplot $gnuplot_pipes $mgnuplot $xmaxima))
+  (setq formats '($geomview $gnuplot $gnuplot_pipes $xmaxima))
   (unless (member (cadr option) formats)
     (merror
      (intl:gettext
-      "Wrong argument ~M for option ~M. Must one of the following symbols: geomview, gnuplot, mgnuplot, xmaxima (or gnuplot_pipes in Unix)")
+      "Wrong argument ~M for option ~M. Must one of the following symbols: geomview, gnuplot, xmaxima (or gnuplot_pipes in Unix)")
      (cadr option) (car option)))
   (cadr option))
 
-;; palette most be one or more Maxima lists starting with the name of one
-;; of the 5 kinds: hue, saturation, value, gray or gradient. The first
-;; four types must be followed by 4 floating-point numbers, while the
-;; gradient type must be followed by a list of valid colors.
 (defun check-option-palette (option)
-  (if (and (= (length option) 2) (null (cadr option)))
-      nil
-      (progn
-        (dolist (item (cdr option))
-          (when (not (and ($listp item)
-                          (member (cadr item)
-                                  '($hue $saturation $value $gray $gradient))))
+"Checks that a palette option is either a valid color, a maxima list of valid
+colors, or the name of a predfined palette.
+For backward compatibily, it is also accepted a maxima list starting with the
+keyword $hue, $saturation, $value or $gradient; the first three types must be
+followed by 4 floating-point numbers, while gradient must be followed by a
+list of at least two valid colors.
+It returns the definition of the palette, if it is valid, or nil."
+  (let ((palette (cadr option)))
+    (cond
+     ((atom palette)
+      (when (not (getf *plot-palettes* palette))
+        (unless (plotcolorp palette)
+          (merror
+           (intl:gettext
+            "Palette: ~M is not a predefined palette or a valid color.")
+           palette))))
+     (($listp palette)
+      (if (member (cadr palette) '($hue $saturation $value $gradient))
+          (case (cadr palette)
+                ($gradient
+                 (when (< (length (cddr palette)) 2)
+                   (merror
+                    (intl:gettext
+                     "Palette: gradient needs at least 2 colors.")))
+                 (dolist (c (cddr palette))
+                   (unless (plotcolorp c)
+                     (merror 
+                      (intl:gettext "Palette: ~M is not a valid color") c))))
+                (($hue $saturation $value)
+                 (setf (cddr palette) (mapcar #'coerce-float (cddr palette)))
+                 (check-option (butlast (cdr #$[value,0.2,0,0,10]$))
+                               #'real01p "a number between 0 and 1" 3)
+                 (check-option (cons (cadr palette) (last (cdr palette)))
+                               #'realp "a real number" 1)))
+        (progn
+          (when (< (length (cdr palette)) 2)
             (merror
-             (intl:gettext
-              "Wrong argument ~M for option ~M. Not a valid palette.")
-             item (car option)))
-          (if (eq (cadr item) '$gradient)
-              (dolist (c (cddr item))
-                (unless (plotcolorp c)
-                  (merror
-                   (intl:gettext
-                    "In palette option, ~M is not a valid color")
-                   c)))
-            (progn
-              (setf (cddr item) (mapcar #'coerce-float (cddr item)))
-              (check-option (cdr item) #'realp "a real number" 4))))
-        (cdr option))))
+             (intl:gettext "Palette: at least 2 colors are required.")))
+          (dolist (c (cdr palette))
+            (unless (plotcolorp c)
+              (merror  (intl:gettext "Palette: ~M is not a valid color")
+                       c)))))
+      (setf palette (cdr palette)))
+     (T
+      (merror
+       (intl:gettext "Palette: expecting a valid palette, found ~M.")
+       palette)))
+    palette))
 
 ;; style can be one or several of the names of the styles or one or several
 ;; Maxima lists starting with the name of one of the styles. 
@@ -2337,7 +2372,7 @@ plot2d ( x^2+y^2 = 1, [x, -2, 2], [y, -2 ,2]);
   (setq options (plot-options-parser extra-options options))
   (when (getf options '$y) (setf (getf options '$ybounds) (getf options '$y)))
   ;; Remove axes labels when no box is used in gnuplot
-  (when (and (member '$box options) (not (getf options '$box))
+  (when (and (member 'mbox options) (not (getf options 'mbox))
              (not (eq (getf options '$plot_format) '$xmaxima)))
     (remf options '$xlabel)
     (remf options '$ylabel))
@@ -2394,41 +2429,6 @@ plot2d ( x^2+y^2 = 1, [x, -2, 2], [y, -2 ,2]);
 (defun msymbolp (x)
   (and (symbolp x) (char= (char (symbol-value x) 0) #\$)))
 
-(defmfun $tcl_output (lis i &optional (skip 2))
-  (when (not (typep i 'fixnum))
-    (merror
-      (intl:gettext "tcl_ouput: second argument must be an integer; found ~M")
-                    i))
-  (when (not ($listp lis))
-    (merror
-      (intl:gettext "tcl_output: first argument must be a list; found ~M") lis))
-  (format *standard-output* "~% {")
-  (cond (($listp (second lis))
-         (loop for v in lis
-                do
-                (format *standard-output* "~,,,,,,'eg " (nth i v))))
-        (t
-         (setq lis (nthcdr i lis))
-         (loop  with v = lis  while v
-                 do
-                 (format *standard-output* "~,,,,,,'eg " (car v))
-                 (setq v (nthcdr skip v)))))
-  (format *standard-output* "~% }"))
-
-(defun tcl-output-list ( st lis )
-  (cond ((null lis) )
-        ((atom (car lis))
-         (princ " {  " st)
-         (loop for v in lis
-                count t into n
-                when (eql 0 (mod n 5))
-                do (terpri st)
-                do
-                (format st "~,,,,,,'eg " v))
-         (format st  " }~%"))
-        (t (tcl-output-list st (car lis))
-           (tcl-output-list st (cdr lis)))))
-
 (defun check-range (range &aux tem a b)
   (or (and ($listp range)
            (setq tem (cdr range))
@@ -2446,42 +2446,22 @@ plot2d ( x^2+y^2 = 1, [x, -2, 2], [y, -2 ,2]);
 
 (defmfun $zero_fun (x y) x y 0.0)
 
-(defun output-points (pl &optional m)
+(defun output-points (points &optional m)
   "If m is supplied print blank line every m lines"
   (let ((j -1))
     (declare (fixnum j))
-    (loop for i below (length (polygon-pts pl))
-           with ar = (polygon-pts pl)
-           do (print-pt (aref ar i))
+    (loop for i below (length points)
+           do (print-pt (aref points i))
            (setq i (+ i 1))
-           (print-pt (aref ar i))
+           (print-pt (aref points i))
            (setq i (+ i 1))
-           (print-pt (aref ar i))
+           (print-pt (aref points i))
            (terpri $pstream)
            (cond (m
                   (setq j (+ j 1))
                   (cond ((eql j (the fixnum m))
                          (terpri $pstream)
-                         (setq j -1)))))
-           )))
-
-(defun output-points-tcl (dest pl m)
-  (format dest " {matrix_mesh ~%")
-  ;; x y z are done separately:
-  (loop for off from 0 to 2
-     with ar = (polygon-pts pl)
-     with  i of-type fixnum = 0
-     do (setq i off)
-       (format dest "~%{")
-       (loop 
-	  while (< i (length ar))
-	  do (format dest "~% {")
-	    (loop for j to m
-	       do (print-pt (aref ar i))
-		 (setq i (+ i 3)))
-	    (format dest "}~%"))
-       (format dest "}~%"))
-  (format dest "}~%"))
+                         (setq j -1))))))))
 
 ;; contour_plot now punts to plot2d
 (defmfun $contour_plot (expr &rest optional-args)
@@ -2498,7 +2478,7 @@ plot2d ( x^2+y^2 = 1, [x, -2, 2], [y, -2 ,2]);
 #| plot3d
 Examples:
 
-plot3d (2^(-u^2 + v^2), [u, -3, 3], [v, -2, 2], [palette, false]);
+plot3d (2^(-u^2 + v^2), [u, -3, 3], [v, -2, 2], nopalette);
 
 plot3d ( log ( x^2*y^2 ), [x, -2, 2], [y, -2, 2], [grid, 29, 29]);
 
@@ -2656,7 +2636,7 @@ Several functions depending on the two variables v1 and v2:
     (setf (getf options '$palette) nil))
    (setq *plot-realpart* (getf options '$plot_realpart))
   ;; set up the labels for the axes, unless no box is being shown
-  (unless (and (member '$box options) (not (getf options '$box)))
+  (unless (and (member 'mbox options) (not (getf options 'mbox)))
     (if (and (getf options '$xvar) (getf options '$yvar) (null tem))
 	(progn
 	  ;; Don't set xlabel (ylabel) if the user specified one.

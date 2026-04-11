@@ -512,7 +512,10 @@
 
 (defmvar $factlim 100000 ; set to a big integer which will work (not -1)
   "specifies the highest factorial which is automatically expanded.  If
-  it is -1 then all integers are expanded.") 
+  it is -1 then all integers are expanded."
+  :setting-predicate #'(lambda (x)
+                         (values (integerp x)
+                                 "Must be an explicit integer")))
 (defvar makef nil)
 
 (defmvar $cauchysum nil
@@ -1995,11 +1998,6 @@
   "Let <x> be a rational number less than one of the form 'p/q'.  If 'q'
   is greater than 'maxpsifracdenom', then 'psi[<n>](<x>)' will not try
   to return a simplified value.")
-
-;;------------------------------------------------------------------------
-;; From hypgeo.lisp
-(defvar *par* nil
-  "Parameter of Laplace transform.")
 
 (defvar *checkcoefsignlist*)
 ;;------------------------------------------------------------------------

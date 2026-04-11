@@ -1,0 +1,44 @@
+# .github/workflows/sync.yml
+name: Sync from Upstream
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # every hour, adjust as needed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Add upstream and sync
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+          git remote add upstream https://git.code.sf.net/p/maxima/code
+          git fetch upstream
+
+          # Save the workflow file before syncing
+          cp .github/workflows/sync.yml /tmp/sync.yml
+
+          # Sync all branches
+          git push origin refs/remotes/upstream/*:refs/heads/* --force-with-lease
+          git push origin --tags --force
+
+          # Restore the workflow file to master
+          git checkout master
+          git reset --hard upstream/master
+          mkdir -p .github/workflows
+          cp /tmp/sync.yml .github/workflows/sync.yml
+          git add .github/workflows/sync.yml
+          git commit -m "Restore sync workflow" --allow-empty
+          git push origin master

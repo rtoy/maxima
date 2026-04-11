@@ -809,6 +809,11 @@ Example expression is --------------
 @end defvr
 
 @c -----------------------------------------------------------------------------
+@anchor{errexp1}
+@defvr {Global variable} errexp1
+See @mrefdot{error_syms}
+@end defvr
+
 @anchor{error_syms}
 @defvr {Option variable} error_syms
 Default value: @code{[errexp1, errexp2, errexp3]}
@@ -1165,10 +1170,7 @@ When @code{prederror} is @code{true}, an error message is displayed whenever the
 predicate of an @code{if} statement or an @mref{is} function fails to evaluate
 to either @code{true} or @code{false}.
 
-If @code{false}, @code{unknown} is returned
-instead in this case.  The @code{prederror: false} mode is not supported in
-translated code;
-however, @code{maybe} is supported in translated code.
+If @code{false}, @code{unknown} is returned instead in this case.
 
 See also @mref{is} and @mrefdot{maybe}
 
@@ -1255,7 +1257,7 @@ See also @mrefcomma{for} @mrefcomma{while} @mref{do} and @mref{block}.
 @anchor{scanmap}
 @deffn {Function} scanmap @
 @fname{scanmap} (@var{f}, @var{expr}) @
-@fname{scanmap} (@var{f}, @var{expr}, bottomup)
+@fname{scanmap} (@var{f}, @var{expr}, bottomup) @
 @fname{scanmap} (@var{f}, @var{expr}, topdown)
 
 Recursively applies @var{f} to @var{expr}, in a top

@@ -59,7 +59,7 @@ clean-local: $(CLEAN_TARGETS)
 DEPENDS_FILES = \
   clisp-depends.mk cmucl-depends.mk scl-depends.mk acl-depends.mk \
   sbcl-depends.mk gcl-depends.mk openmcl-depends.mk ecl-depends.mk abcl-depends.mk
-CLEANFILES = $(DEPENDS_FILES) tools/sys-proclaim.lisp
+CLEANFILES = $(DEPENDS_FILES)
 
 ## Similarly, we do something hacky with the install rule. Most of the
 ## time, we can actually use Automake's tools for this, but for the
@@ -287,28 +287,16 @@ CLEAN_TARGETS += clean-sbcl
 if GCL
 
 gcllibdir = $(verpkglibdir)/binary-gcl
-
-EXTRA_SCRIPTS += binary-gcl/maxima
-gcllib_SCRIPTS = binary-gcl/maxima
+GCL_MAXIMA = binary-gcl/maxima
+EXTRA_SCRIPTS += $(GCL_MAXIMA)
+gcllib_SCRIPTS = $(GCL_MAXIMA)
 
 EXECUTEGCL = $(GCL_NAME)
-BUILT_FILES += binary-gcl/maxima
+BUILT_FILES += $(GCL_MAXIMA)
 
-sys_proc_dependency = tools/sys-proclaim.lisp
-gcl_depends_targets = (list "binary-gcl/maxima" "tools/sys-proclaim.lisp")
+gcl: $(GCL_MAXIMA)
 
-tools/sys-proclaim.lisp: maxima.system *.lisp
-	rm -rf binary-gcl
-	touch sys-proclaim.lisp
-	$(MAKE) bd
-	echo '(load "generate-sys-proclaim.lisp") (system::quit)' | $(EXECUTEGCL)
-	rm -rf binary-gcl
-	mkdir -p tools
-	mv sys-proclaim.lisp tools
-
-gcl: binary-gcl/maxima
-
-binary-gcl/maxima: $(sys_proc_dependency) gcl-depends.mk
+$(GCL_MAXIMA): gcl-depends.mk
 	$(MAKE) bd
 if GCL_ALT_LINK
 	echo '$(QUIET) $(LOADDEFSYSTEM) $(DEFSYSTEMCOMPILE) (system::quit)' | $(EXECUTEGCL)
@@ -319,7 +307,7 @@ else
 endif
 
 gcl-depends.mk: maxima.system Makefile *.lisp
-	echo $(call MAKE_DEPENDS,$(gcl_depends_targets),gcl-depends.mk.tmp) '(system::quit)' | $(EXECUTEGCL)
+	echo $(call MAKE_DEPENDS,$(GCL_MAXIMA),gcl-depends.mk.tmp) '(system::quit)' | $(EXECUTEGCL)
 	sed -e "s#\\\\#/#g" < gcl-depends.mk.tmp > gcl-depends.mk
 -include gcl-depends.mk
 

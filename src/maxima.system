@@ -8,12 +8,7 @@
 ;; Therefore functions can be redefined (essential for share libraries).
 #+ecl (declaim (optimize (debug 2)))
 
-#+gcl
-(let ((version-num (+ (* 10000 system::*gcl-major-version*)
-		      (* 100 system::*gcl-minor-version*)
-		      system::*gcl-extra-version*)))
-  (when (> version-num 20603)
-    (pushnew :gcl-working-proclaims *features*)))
+#+ecl (require 'cmp)
 
 #+cmu
 (setf ext:*gc-verbose* nil)
@@ -131,9 +126,7 @@
 	     (:file "numerical/f2cl-lib-package")
 	     (:file "numerical/slatec")
 	     (:file "command-line")
-	     (:file "pregexp")
-	     #+gcl-working-proclaims
-	     (:private-file "tools/sys-proclaim")))
+	     (:file "pregexp")))
    (:module package :source-pathname ""
 	    ;; On ECL all runtime alterations to the system (i.e from repl)
 	    ;; at runtime are not part of the final executable if they aren't.
@@ -781,7 +774,8 @@
    (:module graphics-drivers :source-pathname ""
 	    :depends-on ("defmfun")
 	    :components
-	    ((:file "gnuplot_def")
+	    ((:file "plotcolors")
+             (:file "gnuplot_def")
 	     (:file "xmaxima_def")
              (:file "geomview_def")))
    (:module final :source-pathname ""
