@@ -1,0 +1,26 @@
+# .github/workflows/sync.yml
+name: Sync from Upstream
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # every hour, adjust as needed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Add upstream and sync
+        run: |
+          git remote add upstream https://git.code.sf.net/p/maxima/website
+          git fetch upstream
+          git push origin refs/remotes/upstream/*:refs/heads/* --force-with-lease
+          git push origin --tags --force
