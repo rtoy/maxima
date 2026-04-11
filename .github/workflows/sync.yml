@@ -20,6 +20,9 @@ jobs:
 
       - name: Add upstream and sync
         run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
           git remote add upstream https://git.code.sf.net/p/maxima/code
           git fetch upstream
 
