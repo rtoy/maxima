@@ -73,6 +73,7 @@ jobs:
       - name: Build Maxima with gcl
         # Make sure we use the ANSI version of gcl.
         run: |
+          gcl --version
           GCL_ANSI=t make -C src gcl
 
       # The user manual needs to be built before the tests are run
