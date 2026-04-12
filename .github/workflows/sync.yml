@@ -4,6 +4,8 @@ run-name: ${{ github.actor }} is running sync 🚀
 
 on:
   push:
+  schedule:
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 permissions:
