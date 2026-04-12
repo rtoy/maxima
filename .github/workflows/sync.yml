@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   sync:
@@ -24,21 +23,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
-          git remote add upstream https://git.code.sf.net/p/maxima/code
+          git remote add upstream https://git.code.sf.net/p/maxima/website
           git fetch upstream
 
-          # Save the workflow file before syncing
-          cp .github/workflows/sync.yml /tmp/sync.yml
-
-          # Sync all branches
+          # Sync all branches and tags
           git push origin refs/remotes/upstream/*:refs/heads/* --force-with-lease
           git push origin --tags --force
-
-          # Restore the workflow file to master
-          git checkout master
-          git reset --hard upstream/master
-          mkdir -p .github/workflows
-          cp /tmp/sync.yml .github/workflows/sync.yml
-          git add .github/workflows/sync.yml
-          git commit -m "Restore sync workflow" --allow-empty
-          git push origin master
