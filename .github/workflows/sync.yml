@@ -1,7 +1,9 @@
 # .github/workflows/sync.yml
 name: Sync from Upstream
+run-name: ${{ github.actor }} is running sync 🚀
 
 on:
+  push:
   workflow_dispatch:
 
 permissions:
